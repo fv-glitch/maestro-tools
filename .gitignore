@@ -6,3 +6,4 @@ fixtures/
 *.pgmx
 *.xsp
 release/
+data/

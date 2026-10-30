@@ -11,6 +11,13 @@ $$('nav button').forEach((b) => b.addEventListener('click', () => {
 
 // ---------- setup
 let settings;
+const WEB = !!maestro.web;
+const fileName = (p) => (WEB ? decodeURIComponent(String(p).split('/').pop()) : p);
+if (WEB) {
+  document.querySelectorAll('[data-pick-dir]').forEach((b) => b.closest('.row').remove());
+  document.querySelectorAll('[data-pick]').forEach((b) => { b.textContent = b.textContent.replace('...', ' (upload)...'); });
+  const intro = document.querySelector('#tab-setup p'); if (intro) intro.textContent = 'Masters are uploaded once and kept on the server, never changed. Generated programs download from the job page.';
+}
 async function loadSettings() {
   settings = await maestro.getSettings();
   $$('[data-show]').forEach((el) => { el.textContent = settings[el.dataset.show] || 'not set'; });
@@ -48,8 +55,8 @@ $('#job').addEventListener('submit', async (e) => {
     last = { g, job, x0: job.hand === settings.heightHand ? 'bottom' : 'top' };
     out.innerHTML = `<div class="panel">
       <p class="status ${g.status}">${g.status === 'final' ? 'FINAL - ready to cut' : 'PROVISIONAL - open both files in Maestro, save them, then Re-check'}</p>
-      <div class="row"><button id="showDoor">Show door</button><span class="path">${esc(g.doorPath)}</span></div>${changes(g.doorChanges)}
-      <div class="row"><button id="showJamb">Show jamb</button><span class="path">${esc(g.jambPath)}</span></div>${changes(g.jambChanges)}
+      <div class="row"><button id="showDoor">${WEB ? 'Download door' : 'Show door'}</button><span class="path">${esc(fileName(g.doorPath))}</span></div>${changes(g.doorChanges)}
+      <div class="row"><button id="showJamb">${WEB ? 'Download jamb' : 'Show jamb'}</button><span class="path">${esc(fileName(g.jambPath))}</span></div>${changes(g.jambChanges)}
       ${g.status === 'provisional' ? `<p class="hint">${g.pendingInMaestro.door + g.pendingInMaestro.jamb} formulas in the programs depend on these values; Maestro applies them when it opens the files.</p>` : ''}
       <div class="row"><button id="recheck" class="primary">Re-check</button></div>
       <div id="rep">${report(g.alignment)}</div></div>`;
@@ -61,8 +68,9 @@ $('#job').addEventListener('submit', async (e) => {
 
 // ---------- check tab
 let cd, cj;
-$('#pickDoor').onclick = async () => { cd = await maestro.pickFile(); $('#checkDoor').textContent = cd || '-'; };
-$('#pickJamb').onclick = async () => { cj = await maestro.pickFile(); $('#checkJamb').textContent = cj || '-'; };
+const label = (x) => (x ? (maestro.nameOf ? maestro.nameOf(x) : x) : '-');
+$('#pickDoor').onclick = async () => { cd = await maestro.pickFile(); $('#checkDoor').textContent = label(cd); };
+$('#pickJamb').onclick = async () => { cj = await maestro.pickFile(); $('#checkJamb').textContent = label(cj); };
 $('#runCheck').onclick = async () => {
   if (!cd || !cj) return;
   const h = parseFloat($('#checkHeight').value);

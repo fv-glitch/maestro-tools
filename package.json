@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dist": "npm run build && electron-builder --win nsis portable --x64",
-    "dist:dir": "npm run build && electron-builder --win dir --x64"
+    "dist:dir": "npm run build && electron-builder --win dir --x64",
+    "serve": "npm run build && node dist/server/server.js"
   },
   "license": "UNLICENSED",
   "dependencies": {
@@ -35,7 +36,8 @@
     "files": [
       "dist/**/*",
       "package.json",
-      "!dist/**/*.map"
+      "!dist/**/*.map",
+      "!dist/server/**"
     ],
     "win": {
       "icon": "build/icon.ico",

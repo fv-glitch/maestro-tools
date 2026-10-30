@@ -11,6 +11,7 @@ Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 | **Door + jamb generator** - job form to matching door + jamb programs (Windsor Apex so far), with alignment check | v1, needs a first run in Maestro |
 | Hardware fitter - caliper readings to perfect-fit pockets / macros | planned |
 | **Program checker** - door vs jamb hinges, screws, latch/strike, against the job | door/jamb alignment done |
+| **Web service** - the same app served from a homelab (Docker), upload/download | v1 |
 | **Viewer** - open any .pgmx: faces unfolded around the top, stored toolpaths by tool, step tree with groups, hide/highlight, zoom/pan | v1 |
 | DXF / logo tools | planned |
 
@@ -73,3 +74,17 @@ Building the installers (Linux needs Wine incl. 32-bit: `apt install wine64 wine
 ```
 npm run dist        # -> release/Maestro Tools-Setup-x.y.z.exe and -Portable-x.y.z.exe
 ```
+
+## Run as a web service (homelab)
+
+Same app in a browser; files move by upload and download. Masters are uploaded once in Setup and
+kept on the server (never modified). Uploads and generated files are cleaned up after a week.
+
+```
+git clone https://github.com/fv-glitch/maestro-tools && cd maestro-tools
+docker compose up -d --build        # http://<host>:8080
+```
+
+- Data (masters, settings, recent files) lives in `./data`.
+- Set `MT_PASSWORD` in `docker-compose.yml` to require a password (any user name).
+- Without Docker: `npm install && npm run serve` (`PORT`, `DATA_DIR`, `MT_PASSWORD` env vars).
