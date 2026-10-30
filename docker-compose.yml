@@ -1,0 +1,13 @@
+services:
+  maestro-tools:
+    build: .
+    image: maestro-tools:latest
+    container_name: maestro-tools
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # - MT_PASSWORD=change-me     # uncomment to require a password
+      - TZ=Pacific/Auckland
+    volumes:
+      - ./data:/data                # masters, settings, recent uploads/outputs
