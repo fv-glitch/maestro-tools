@@ -29,3 +29,24 @@ th, td { text-align: right; padding: 3px 10px; border-bottom: 1px solid var(--li
 th:first-child, td:first-child { text-align: left; }
 td.ok { color: var(--ok); } td.near { color: var(--near); } td.out { color: var(--out); font-weight: 700; }
 ul { margin: 6px 0; padding-left: 18px; }
+
+/* viewer */
+.viewer { display: grid; grid-template-columns: 300px 1fr; gap: 12px; height: calc(100vh - 150px); min-height: 420px; }
+.steps { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 6px 0; font-size: 13px; }
+.steps .grp { padding: 6px 10px 2px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.steps .st { display: flex; align-items: center; gap: 6px; padding: 3px 10px; cursor: pointer; }
+.steps .st:hover { background: var(--bg); } .steps .st.sel { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.steps .st.off { color: var(--muted); font-style: italic; }
+.steps .st input { width: auto; margin: 0; display: inline; }
+.steps .sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.steps .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.steps .tl { color: var(--muted); font-size: 11px; font-family: ui-monospace, monospace; }
+.canvas { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--card); overflow: hidden; }
+#svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+#svg .face { fill: var(--bg); stroke: var(--muted); }
+#svg .facelbl { fill: var(--muted); font-size: 11px; }
+#svg path { fill: none; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+#svg path.mv { stroke-dasharray: 3 3; opacity: .55; }
+#svg .dim path, #svg .dim { opacity: .18; }
+.info { position: absolute; right: 10px; top: 10px; max-width: 320px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; display: none; }
+.info b { display: block; margin-bottom: 2px; }

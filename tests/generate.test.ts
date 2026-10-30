@@ -49,3 +49,14 @@ describe.skipIf(!have)('APEX masters', () => {
     expect(g.status).toBe('provisional'); expect(g.pendingInMaestro.door).toBeGreaterThan(0);
   });
 });
+
+import { viewModel } from '../src/view/model';
+describe.skipIf(!have)('viewer model', () => {
+  it('puts door edge work on the right faces', () => {
+    const m = viewModel(getXml(readPgmx(F.door)));
+    const face = (re: RegExp) => [...new Set(m.steps.filter((s) => s.enabled && re.test(s.groups.join('/'))).map((s) => s.face))];
+    expect(face(/Hinge 1 Left/)).toEqual(['front']);
+    expect(face(/FuturaLatchHole/)).toEqual(['back']);
+    expect(face(/FuturaRangeNoBore/)).toEqual(['top']);
+  });
+});
