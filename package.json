@@ -1,6 +1,6 @@
 {
   "name": "maestro-tools",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Standalone CNC/CAM tools for SCM Maestro: generate and check .pgmx programs",
   "main": "dist/main/main.js",
@@ -8,7 +8,9 @@
     "build": "tsc -p tsconfig.json && node scripts/copy-renderer.mjs",
     "start": "npm run build && electron .",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dist": "npm run build && electron-builder --win nsis portable --x64",
+    "dist:dir": "npm run build && electron-builder --win dir --x64"
   },
   "license": "UNLICENSED",
   "dependencies": {
@@ -17,7 +19,44 @@
   "devDependencies": {
     "@types/node": "^22.10.2",
     "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
     "typescript": "^5.6.3",
     "vitest": "^2.1.8"
+  },
+  "author": "Shane (Central ITM)",
+  "build": {
+    "appId": "nz.co.centralitm.maestrotools",
+    "productName": "Maestro Tools",
+    "copyright": "Central ITM",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "!dist/**/*.map"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Maestro Tools",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    },
+    "asar": true
   }
 }
