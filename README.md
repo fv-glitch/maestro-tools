@@ -8,18 +8,35 @@ Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 | Tool | Status |
 |---|---|
 | **Engine** - read/write `.pgmx`, exact-text edits, clone steps across programs, parameters, groups, validators | done, parity-tested |
-| Door + jamb generator - job inputs to matching door and jamb programs | next |
+| **Door + jamb generator** - job form to matching door + jamb programs (Windsor Apex so far), with alignment check | v1, needs a first run in Maestro |
 | Hardware fitter - caliper readings to perfect-fit pockets / macros | planned |
-| Program checker - hinge alignment, single-pass plunges, start points, file health | planned |
+| **Program checker** - door vs jamb hinges, screws, latch/strike, against the job | door/jamb alignment done |
 | DXF / logo tools | planned |
 
 ## Run
 
 ```
 npm install
-npm test        # engine + parity tests
+npm test        # engine + parity + generator tests
 npm start       # build and open the app
 ```
+
+Command line (after `npm run build`):
+
+```
+node dist/cli.js check "door.pgmx" "jamb.pgmx" [--door-x0 top]
+node dist/cli.js generate job.json masters.json <outDir> [--height-hand LH|RH]
+node dist/cli.js vars "program.pgmx"      # variables and formulas
+node dist/cli.js steps "program.pgmx"     # enabled machining with extents
+node dist/cli.js safe "program.pgmx"      # file-health checks
+```
+
+### First run on scm-pc
+
+1. Setup tab: pick the APEX Passage door master, the LH and RH 112 28mm APEX Strike jambs, an output folder.
+2. Generate a job with a different handle height (e.g. 1000). It will say PROVISIONAL.
+3. Open both generated files in Maestro, save them, press Re-check. If the latch/strike rows now
+   read 1000, Maestro re-evaluates on open and the generator is good to use.
 
 ## Parity tests
 

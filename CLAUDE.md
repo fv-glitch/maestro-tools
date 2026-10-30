@@ -38,7 +38,24 @@ so the file format is stable.
 - Fit clearance: measured size + 0.1 per side (16mm E019); flare relief step ~2.5 deep only when the part has a shoulder.
 - Tools (def.tlgx): E016 8mm, E017 3mm, E019 16mm, E022 3mm drill (2149904617), E024 8mm drill (2149911873), E025 10mm drill.
 
+## Hands, masters and the generator
+
+- Door: ONE LH-hinge door program for both hands; hardware is machined on the other side.
+  Handle at `height` for one hand, `dx1 - height` for the other (door turned end for end); when the
+  handle is dead centre both hands are the same program. Which hand gets `height` is a setting.
+- Jamb: separate LH and RH masters (they differ in which steps Maestro has enabled + expanded).
+  Choose the hand by master file - never flip LH/RH variables in a jamb and trust it.
+  Jamb Lockposition is always the real height off the floor.
+- APEX = Windsor Apex range: Futura door macros + ApexStriker1 on the jamb.
+- Generator sets input variables, recomputes derived variables (engine/formula.ts evaluates
+  Maestro's formula language; trig is in degrees), writes new files, and runs the alignment check
+  on the STORED machining plus job-intent rows. If any formula on a macro/step reads a changed
+  variable the result is PROVISIONAL until Shane opens + saves both files in Maestro and re-checks.
+  UNTESTED: whether Maestro re-evaluates everything on open - confirm on scm-pc before relying on it.
+
 ## Known open item
 
-Jamb centre/top hinge formulas are fixed numbers (945 / 1741) while the door computes
-(doorlength-89.2)/2 and doorlength-150-89.2 -> centre hinge 0.4mm out at 1980. Fix pending Shane's go-ahead.
+Hinges in the APEX masters (checker output): centre pocket+screws 0.4 low on the jamb at any length
+(door centre hinge is a fixed 945.4, jamb Hinge C is a fixed 945); top pocket +0.2 (door follows
+dx1-150-89.2, jamb is a fixed 1741 so it drifts when the door is not 1980); bottom screws -0.1.
+Fix pending Shane's go-ahead.
