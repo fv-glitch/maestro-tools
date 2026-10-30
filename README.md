@@ -58,3 +58,18 @@ src/ops/      operations built on the engine (recorded.ts = the proven Oct-2026 
 src/main/     Electron main + preload
 src/renderer/ UI
 ```
+
+## Install on Windows (no Node / npm needed)
+
+Download from the repo's **Releases** page:
+
+- `Maestro Tools-Setup-<version>.exe` - installer, adds Start menu + desktop shortcuts
+- `Maestro Tools-Portable-<version>.exe` - single file, runs from anywhere (USB stick, shared folder)
+
+Windows SmartScreen may warn because the app is not code-signed: More info -> Run anyway.
+
+Building the installers (Linux needs Wine incl. 32-bit: `apt install wine64 wine32:i386`):
+
+```
+npm run dist        # -> release/Maestro Tools-Setup-x.y.z.exe and -Portable-x.y.z.exe
+```
