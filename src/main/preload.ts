@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 // The renderer reaches the engine only through this bridge.
 contextBridge.exposeInMainWorld('maestro', {
-  version: '0.3.0',
+  version: '0.4.0',
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (s: unknown) => ipcRenderer.invoke('settings:set', s),
   pickFile: () => ipcRenderer.invoke('pick:file'),

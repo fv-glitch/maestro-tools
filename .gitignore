@@ -1,9 +1,6 @@
 node_modules/
 dist/
 out/
-# Real customer / shop programs used by the parity tests. Never commit them.
-fixtures/
-*.pgmx
 *.xsp
 release/
 data/

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
   <title>Maestro Tools</title>
   <link rel="stylesheet" href="app.css" />
@@ -52,10 +53,12 @@
       <div class="row"><button id="openView" class="primary">Open program...</button><span id="viewName" class="path">-</span>
         <label class="check"><input id="showOff" type="checkbox" /> show turned-off steps</label>
         <label class="check"><input id="showMoves" type="checkbox" checked /> approach / lift</label>
-        <button id="fitView">Fit</button></div>
+        <span class="seg"><button id="mode2d" class="on">2D</button><button id="mode3d">3D</button></span>
+        <button id="fitView" title="Fit (or double-click the drawing)">Fit</button></div>
       <div class="viewer">
         <div class="steps" id="stepList"></div>
-        <div class="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="stepInfo" class="info"></div></div>
+        <div class="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="three" hidden></div><div id="stepInfo" class="info"></div>
+          <div class="help" id="viewHelp">wheel / pinch: zoom &middot; drag: pan &middot; double-click: fit &middot; Esc: clear selection</div></div>
       </div>
     </section>
 
@@ -84,5 +87,6 @@
   </main>
   <script src="app.js"></script>
   <script src="viewer.js"></script>
+  <script src="viewer3d.js"></script>
 </body>
 </html>
