@@ -1,0 +1,23 @@
+{
+  "name": "maestro-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone CNC/CAM tools for SCM Maestro: generate and check .pgmx programs",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-renderer.mjs",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "fflate": "^0.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "electron": "^33.2.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

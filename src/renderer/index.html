@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <title>Maestro Tools</title>
+  <style>
+    :root { --bg: #f6f7f9; --fg: #1c2330; --muted: #5d6675; --card: #fff; --line: #dfe3ea; --accent: #2f5fd0; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #14181f; --fg: #e8ebf0; --muted: #9aa3b2; --card: #1c222b; --line: #2b333f; --accent: #7fa2ff; } }
+    body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+    header { padding: 20px 28px; border-bottom: 1px solid var(--line); }
+    h1 { margin: 0; font-size: 20px; }
+    main { padding: 24px 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .tool { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+    .tool h2 { margin: 0 0 6px; font-size: 16px; }
+    .tool p { margin: 0; color: var(--muted); }
+    .soon { font-size: 12px; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header><h1>Maestro Tools</h1></header>
+  <main>
+    <section class="tool"><h2>Door + jamb generator</h2><p>Job inputs in, matching door and jamb .pgmx out.</p><span class="soon">In progress</span></section>
+    <section class="tool"><h2>Hardware fitter</h2><p>Caliper readings to a perfect-fit pocket or macro.</p><span class="soon">Planned</span></section>
+    <section class="tool"><h2>Program checker</h2><p>Hinge alignment, plunges, start points, file health.</p><span class="soon">Planned</span></section>
+    <section class="tool"><h2>DXF / logo tools</h2><p>Raster art to CAM-ready vectors.</p><span class="soon">Planned</span></section>
+  </main>
+</body>
+</html>
