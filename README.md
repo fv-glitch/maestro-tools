@@ -12,7 +12,7 @@ Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 | Hardware fitter - caliper readings to perfect-fit pockets / macros | planned |
 | **Program checker** - door vs jamb hinges, screws, latch/strike, against the job | door/jamb alignment done |
 | **Web service** - the same app served from a homelab (Docker), upload/download | v1 |
-| **Viewer** - open any .pgmx: faces unfolded around the top, stored toolpaths by tool, step tree with groups, hide/highlight, zoom/pan | v1 |
+| **Viewer** - open any .pgmx: 2D (faces unfolded around the top) or 3D (orbit around the part), stored toolpaths by tool, step tree with groups, hide/highlight, mouse + touch | v2 |
 | DXF / logo tools | planned |
 
 ## Run
@@ -46,9 +46,9 @@ node dist/cli.js safe "program.pgmx"      # file-health checks
 latch set, groups, spindle helix, start point, jamb strike) and requires the output XML to be
 **byte-identical** to the files that were opened in Maestro and run on the machine.
 
-The fixtures are real shop programs and are **not committed**. Put them in `./fixtures/`
-(`door-1430.pgmx`, `door-lt1.pgmx`, ..., `itm-final.pgmx`, `jamb-orig.pgmx`, `jamb-sk1.pgmx`);
-tests skip when they are missing.
+The fixtures in `./fixtures/` are real shop programs: the before/after files of each proven build,
+the APEX Passage door + LH/RH APEX Strike jamb masters, the ITM show door (template source) and
+TestingDoorReal. They are left out of the Docker image and the installers.
 
 ## Layout
 

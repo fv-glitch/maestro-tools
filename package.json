@@ -1,6 +1,6 @@
 {
   "name": "maestro-tools",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Standalone CNC/CAM tools for SCM Maestro: generate and check .pgmx programs",
   "main": "dist/main/main.js",
@@ -21,8 +21,10 @@
     "@types/node": "^22.10.2",
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8",
+    "esbuild": "^0.21.5",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "three": "^0.169.0"
   },
   "author": "Shane (Central ITM)",
   "build": {

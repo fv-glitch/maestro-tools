@@ -53,6 +53,13 @@ so the file format is stable.
   variable the result is PROVISIONAL until Shane opens + saves both files in Maestro and re-checks.
   UNTESTED: whether Maestro re-evaluates everything on open - confirm on scm-pc before relying on it.
 
+## Renderer
+
+- Plain scripts, no ES modules (Chromium blocks module scripts from file://, which is how Electron
+  loads the UI). The 3D viewer + three.js are bundled to one IIFE by esbuild in scripts/copy-renderer.mjs.
+- Same UI for desktop and web: window.maestro is the Electron preload bridge or web-bridge.js (fetch).
+- Viewers draw STORED toolpaths (what Maestro last computed), never re-derived geometry.
+
 ## Known open item
 
 Hinges in the APEX masters (checker output): centre pocket+screws 0.4 low on the jamb at any length
