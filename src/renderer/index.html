@@ -11,6 +11,7 @@
     <h1>Maestro Tools</h1>
     <nav>
       <button data-tab="job" class="on">Door + jamb</button>
+      <button data-tab="view">Viewer</button>
       <button data-tab="check">Check</button>
       <button data-tab="setup">Setup</button>
     </nav>
@@ -47,6 +48,17 @@
       <div id="result"></div>
     </section>
 
+    <section id="tab-view" class="tab">
+      <div class="row"><button id="openView" class="primary">Open program...</button><span id="viewName" class="path">-</span>
+        <label class="check"><input id="showOff" type="checkbox" /> show turned-off steps</label>
+        <label class="check"><input id="showMoves" type="checkbox" checked /> approach / lift</label>
+        <button id="fitView">Fit</button></div>
+      <div class="viewer">
+        <div class="steps" id="stepList"></div>
+        <div class="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="stepInfo" class="info"></div></div>
+      </div>
+    </section>
+
     <section id="tab-check" class="tab">
       <p>Compare a door and jamb from what is stored in the files. Run this after opening and saving generated files in Maestro.</p>
       <div class="row"><button id="pickDoor">Door program...</button><span id="checkDoor" class="path">-</span></div>
@@ -71,5 +83,6 @@
     </section>
   </main>
   <script src="app.js"></script>
+  <script src="viewer.js"></script>
 </body>
 </html>

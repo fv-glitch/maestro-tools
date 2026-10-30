@@ -11,6 +11,7 @@ Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 | **Door + jamb generator** - job form to matching door + jamb programs (Windsor Apex so far), with alignment check | v1, needs a first run in Maestro |
 | Hardware fitter - caliper readings to perfect-fit pockets / macros | planned |
 | **Program checker** - door vs jamb hinges, screws, latch/strike, against the job | door/jamb alignment done |
+| **Viewer** - open any .pgmx: faces unfolded around the top, stored toolpaths by tool, step tree with groups, hide/highlight, zoom/pan | v1 |
 | DXF / logo tools | planned |
 
 ## Run
