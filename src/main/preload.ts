@@ -1,4 +1,13 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
-// The renderer talks to the engine only through this bridge. Tools are added here as they are built.
-contextBridge.exposeInMainWorld('maestro', { version: '0.1.0' });
+// The renderer reaches the engine only through this bridge.
+contextBridge.exposeInMainWorld('maestro', {
+  version: '0.2.0',
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  setSettings: (s: unknown) => ipcRenderer.invoke('settings:set', s),
+  pickFile: () => ipcRenderer.invoke('pick:file'),
+  pickDir: () => ipcRenderer.invoke('pick:dir'),
+  generate: (job: unknown) => ipcRenderer.invoke('job:generate', job),
+  check: (door: string, jamb: string, doorX0: string, handleHeight?: number) => ipcRenderer.invoke('job:check', door, jamb, doorX0, handleHeight),
+  showInFolder: (p: string) => ipcRenderer.invoke('shell:show', p),
+});
