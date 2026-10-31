@@ -1,6 +1,6 @@
 {
   "name": "maestro-tools",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Standalone CNC/CAM tools for SCM Maestro: generate and check .pgmx programs",
   "main": "dist/main/main.js",

@@ -53,12 +53,13 @@
       <div class="row"><button id="openView" class="primary">Open program...</button><span id="viewName" class="path">-</span>
         <label class="check"><input id="showOff" type="checkbox" /> show turned-off steps</label>
         <label class="check"><input id="showMoves" type="checkbox" checked /> approach / lift</label>
+        <label class="check" title="material each step removes, at the real tool width"><input id="showCut" type="checkbox" checked /> cut size</label>
         <span class="seg"><button id="mode2d" class="on">2D</button><button id="mode3d">3D</button></span>
         <button id="fitView" title="Fit (or double-click the drawing)">Fit</button></div>
       <div class="viewer">
         <div class="steps" id="stepList"></div>
-        <div class="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="three" hidden></div><div id="stepInfo" class="info"></div>
-          <div class="help" id="viewHelp">wheel / pinch: zoom &middot; drag: pan &middot; double-click: fit &middot; Esc: clear selection</div></div>
+        <div class="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="three" hidden></div><div id="stepInfo" class="info"></div><div id="cutLegend" class="legend" hidden></div>
+          <div class="help" id="viewHelp">wheel / pinch: zoom &middot; drag: pan &middot; double-click: fit (a cut: zoom to it) &middot; Esc: clear selection</div></div>
       </div>
     </section>
 

@@ -11,7 +11,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, ren
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import * as path from 'node:path';
 import { readPgmx, getXml } from '../engine/archive';
-import { viewModel } from '../view/model';
+import { viewModelOf } from '../view/model';
 import { alignDoorJamb } from '../check/alignment';
 import { generate, type Job } from '../ops/generate';
 
@@ -116,7 +116,7 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'POST' && p === '/api/view') {
       const { id } = await json<{ id: string }>(req); const f = uploaded(id);
-      return send(res, 200, viewModel(getXml(readPgmx(f)), path.basename(f, '.pgmx')));
+      return send(res, 200, viewModelOf(readPgmx(f), path.basename(f, '.pgmx')));
     }
     if (req.method === 'POST' && p === '/api/check') {
       const q = await json<{ door: string; jamb: string; doorX0: 'bottom' | 'top'; handleHeight?: number }>(req);

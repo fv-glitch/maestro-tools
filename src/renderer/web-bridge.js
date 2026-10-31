@@ -23,7 +23,7 @@
     });
   }
   window.maestro = {
-    version: '0.4.0', web: true,
+    version: '0.5.0', web: true,
     nameOf: (id) => names.get(id) || id,
     getSettings: async () => ({ ...(await api('/api/settings')), outDir: 'downloads (web)' }),
     setSettings: async (s) => ({ ...(await post('/api/settings', s)), outDir: 'downloads (web)' }),
