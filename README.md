@@ -12,7 +12,7 @@ Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 | Hardware fitter - caliper readings to perfect-fit pockets / macros | planned |
 | **Program checker** - door vs jamb hinges, screws, latch/strike, against the job | door/jamb alignment done |
 | **Web service** - the same app served from a homelab (Docker), upload/download | v1 |
-| **Viewer** - open any .pgmx: 2D (faces unfolded around the top) or 3D (orbit around the part), stored toolpaths by tool, step tree with groups, hide/highlight, mouse + touch | v2 |
+| **Viewer** - open any .pgmx: 2D (faces unfolded around the top) or 3D (orbit around the part), stored toolpaths by tool, step tree with groups, hide/highlight, mouse + touch. **Cut size**: the material each step removes at the real tool width (from the program's tool library), coloured by depth, with the size of each cut (e.g. `57.33 x 25.44 (X x Z), 3.06 deep`); 3D shows the simulated pockets and bores | v3 |
 | DXF / logo tools | planned |
 
 ## Run

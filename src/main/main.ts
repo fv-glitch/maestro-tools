@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { generate, type Job } from '../ops/generate';
 import { alignDoorJamb } from '../check/alignment';
 import { readPgmx, getXml } from '../engine/archive';
-import { viewModel } from '../view/model';
+import { viewModelOf } from '../view/model';
 
 interface Settings { door: string; jambLH: string; jambRH: string; outDir: string; heightHand: 'LH' | 'RH' }
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
@@ -42,7 +42,7 @@ ipcMain.handle('job:check', (_e, doorPath: string, jambPath: string, doorX0: 'bo
 ipcMain.handle('view:open', async () => {
   const r = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Maestro program', extensions: ['pgmx'] }] });
   if (r.canceled) return undefined;
-  return viewModel(getXml(readPgmx(r.filePaths[0])), path.basename(r.filePaths[0], '.pgmx'));
+  return viewModelOf(readPgmx(r.filePaths[0]), path.basename(r.filePaths[0], '.pgmx'));
 });
 ipcMain.handle('shell:show', (_e, p: string) => shell.showItemInFolder(p));
 

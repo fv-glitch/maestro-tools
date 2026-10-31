@@ -59,6 +59,10 @@ so the file format is stable.
   loads the UI). The 3D viewer + three.js are bundled to one IIFE by esbuild in scripts/copy-renderer.mjs.
 - Same UI for desktop and web: window.maestro is the Electron preload bridge or web-bridge.js (fetch).
 - Viewers draw STORED toolpaths (what Maestro last computed), never re-derived geometry.
+- Cut size / simulation: tool width from def.tlgx (saw = BladeThickness), flat-bottomed tool swept along the
+  in-material part of the stored toolpath (engine `inMaterial`, `cutSize`; renderer `cutsim.mjs` height-map tiles).
+  Face frames in src/view/model.ts and src/renderer/cutsim.mjs must match. Sizes are clipped to the face for doors;
+  jamb programs (0.1 thick, several pieces outside dx1 x dy1) are never clipped. Drill tips / V cutters are drawn flat.
 
 ## Known open item
 
