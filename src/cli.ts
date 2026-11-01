@@ -6,6 +6,7 @@
  *   steps <file.pgmx>                               enabled machining: macro, plane, depth, extents
  *   safe <file.pgmx>                                file-health checks Maestro cares about
  *   generate <job.json> <masters.json> <outDir> [--height-hand LH|RH]
+ *   panels <parts.json> <plan.json|-> <outDir> --base <TestingDoorReal.pgmx> --itm <ITM.pgmx> --apex <APEX Passage.pgmx>
  */
 import { readPgmx, getXml } from './engine/archive';
 import { alignDoorJamb, formatReport } from './check/alignment';
@@ -13,7 +14,12 @@ import { readVariables } from './engine/variables';
 import { machiningOf } from './check/machining';
 import { strayTextProblems, duplicateIds } from './engine/validate';
 import { generate, type Job, type Masters } from './ops/generate';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import * as path from 'node:path';
+import { writePgmx } from './engine/archive';
+import { assertSafe } from './engine/validate';
+import { loadTemplates } from './ops/cabinet';
+import { partPrograms, sawPrograms, stripPrograms, type Part, type PlanJSON, type Program } from './ops/panelJob';
 
 const [cmd, ...args] = process.argv.slice(2);
 const flag = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined; };
@@ -33,5 +39,18 @@ try {
     console.log('jamb ->', g.jambPath); for (const c of g.jambChanges) console.log(`   ${c.name}: ${c.from} -> ${c.to}${c.derived ? ' (calculated)' : ''}`);
     console.log(`status: ${g.status.toUpperCase()}` + (g.status === 'provisional' ? ` - open both in Maestro, save, then: check "${g.doorPath}" "${g.jambPath}" (${g.pendingInMaestro.door + g.pendingInMaestro.jamb} formulas to apply)` : ''));
     console.log(formatReport(g.alignment));
-  } else { console.log(readFileSync(__filename, 'utf8').split('\n').slice(2, 9).join('\n')); process.exitCode = 1; }
+  } else if (cmd === 'panels') {
+    const baseA = readPgmx(flag('--base')!); const base = getXml(baseA);
+    const tp = loadTemplates(xml(flag('--itm')!), base, xml(flag('--apex')!));
+    const parts = (JSON.parse(readFileSync(args[0], 'utf8')) as { parts: Part[] }).parts;
+    const plan = args[1] !== '-' ? JSON.parse(readFileSync(args[1], 'utf8')) as PlanJSON : undefined;
+    const out = args[2]; const index: Record<string, unknown>[] = [];
+    const write = (dir: string, pr: Program) => {
+      assertSafe(base, pr.xml); const stem = pr.name.replace(/[\\/:*?"<>|]/g, '_'); mkdirSync(path.join(out, dir), { recursive: true });
+      writePgmx(baseA, pr.xml, path.join(out, dir, stem + '.pgmx'), stem); index.push({ dir, file: stem + '.pgmx', name: pr.name, part: pr.part, setup: pr.setup, summary: pr.summary }); console.log(dir + '/' + stem);
+    };
+    for (const p of parts) for (const pr of partPrograms(p, base, tp)) write('parts', pr);
+    if (plan) for (const pr of sawPrograms(plan, base, tp)) write('saw', pr);
+    writeFileSync(path.join(out, 'index.json'), JSON.stringify({ programs: index, strips: plan ? [...stripPrograms(plan)] : [] }, null, 1));
+  } else { console.log(readFileSync(__filename, 'utf8').split('\n').slice(2, 10).join('\n')); process.exitCode = 1; }
 } catch (e) { console.error('error:', (e as Error).message); process.exitCode = 1; }
