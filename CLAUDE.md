@@ -53,6 +53,17 @@ so the file format is stable.
   variable the result is PROVISIONAL until the owner opens + saves both files in Maestro and re-checks.
   UNTESTED: whether Maestro re-evaluates everything on open - confirm on the Maestro PC before relying on it.
 
+## Panel jobs (src/ops/cabinet.ts, panelJob.ts)
+
+- Blank program = TestingDoorReal with every step/feature/geometry/operation/variable/expression removed
+  (workpiece expressions dx1/dy1/dz1, planes, layers, setup and the Xn park move kept). Never write one from nothing.
+- Templates: ITM 'E016 8mm - Pocket(3)-1143main7_1(1)(1)' (rect pocket), TDR E022/E024 top drills, APEX 'Boring'
+  (Front plane, tool swapped to E024) for edge holes, APEX 'Cut Side LH' / '(1)' for saw cuts along X / Y.
+- Edge planes: Front x=X, Left x=W-Y, Right x=Y, Back x=L-X; plane y = Z on all four (from the planes' P/N/Vx).
+- Saw: SideOfFeature=Left puts the blade on the left of travel; geometry line = kerf edge, blade centre = plan cut.
+- Housing walls follow BoardT (expressions); stored toolpaths are for BoardT = 18 (18.2 wide).
+- UNTESTED in Maestro (Nov 2026): first panel + saw programs need opening and saving on the Maestro PC.
+
 ## Renderer
 
 - Plain scripts, no ES modules (Chromium blocks module scripts from file://, which is how Electron

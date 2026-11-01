@@ -3,6 +3,21 @@
 Standalone CNC/CAM tools for the SCM Maestro programs.
 Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 
+## Panel jobs (carcass / flat-pack)
+
+`panels` turns a CNC package (`parts.json`: outline, pockets, face holes, edge holes per part, two setups F1/F0)
+into one program per part per setup, plus saw programs from a cut plan (`scripts/cutplan`):
+
+- blank program = TestingDoorReal emptied to a bare workpiece (park move, planes, setup kept)
+- notches (through, E016) from the outline; housings/rebates as rectangle pockets (E016) - housing walls follow
+  the `BoardT` variable (cut BoardT + 0.2 wide); 8 mm dowels (E024), 3 mm screw marks (E022); horizontal 8 mm edge
+  dowels (E024) on the Left/Right/Front/Back planes; F0 setup = part turned over about X (y -> W - y)
+- saw: rips along X per sheet, crosscuts along Y per strip (E015, blade centre on the plan's kerf, runs 100 past both ends)
+
+```
+node dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --itm "Beta-Optimised - Final.pgmx" --apex "APEX Passage.pgmx"
+```
+
 ## Tools
 
 | Tool | Status |
