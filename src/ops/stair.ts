@@ -29,6 +29,8 @@ export interface StairInput {
   stringerT: number;
   housingDepth?: number;   // into the stringer face, default 12
   aboveNosing?: number;    // stringer top edge above the pitch line (perpendicular), default 50
+  toolR?: number;          // housing cutter radius, default 8 (E019 16mm). Pockets overlap / run out by this
+                           // much so the cutter's inside-corner radius never lands where a board seats
 }
 
 export interface StairPlan {
@@ -76,14 +78,18 @@ export function housedStringer(s: StairInput): StringerLayout {
   const toS = ([u, v]: Pt): Pt => { const du = u - u0, dv = v; return [du * ca + dv * sa, W + (-du * sa + dv * ca)]; };
   const rect = (u1: number, v1: number, u2: number, v2: number): Pt[] => [[u1, v1], [u2, v1], [u2, v2], [u1, v2]].map((q) => toS(q as Pt));
   const housings: Housing[] = [];
+  // Joints overlap by the cutter radius and the end risers run 2 past their end cut, so the rounded
+  // inside corners fall in waste (inside the other housing, behind the riser, or beyond the end cut).
+  const r = s.toolR ?? 8, out = r + 2;
   for (let k = 1; k <= p.treads; k++) {
-    // tread k: nosing front at (k-1)G - N, runs back to the face of riser k+1 plus its thickness
-    housings.push({ kind: 'tread', index: k, depth: p.housingDepth, corners: rect((k - 1) * G - N, k * R - s.treadT, k * G + s.riserT, k * R) });
+    // tread k: nosing front at (k-1)G - N, runs back past the back of riser k+1 by r
+    housings.push({ kind: 'tread', index: k, depth: p.housingDepth, corners: rect((k - 1) * G - N, k * R - s.treadT, k * G + s.riserT + r, k * R) });
   }
   if (s.riserT > 0) for (let k = 1; k <= p.risers; k++) {
-    // riser k: under tread k (or under the top floor), above tread k-1 (or the floor)
-    const top = k < p.risers ? k * R - s.treadT : k * R;
-    housings.push({ kind: 'riser', index: k, depth: p.housingDepth, corners: rect((k - 1) * G, (k - 1) * R, (k - 1) * G + s.riserT, top) });
+    // riser k: from r into tread k-1's housing (or past the floor cut) to r into tread k's (or past the top floor cut)
+    const bot = k > 1 ? (k - 1) * R - r : -out;
+    const top = k < p.risers ? k * R - s.treadT + r : k * R + out;
+    housings.push({ kind: 'riser', index: k, depth: p.housingDepth, corners: rect((k - 1) * G, bot, (k - 1) * G + s.riserT, top) });
   }
   const problems = [...p.problems];
   const all = housings.flatMap((h) => h.corners);
@@ -95,6 +101,5 @@ export function housedStringer(s: StairInput): StringerLayout {
   const H = s.totalRise, run = W / Math.tan(a);
   const endCuts: [Pt, Pt][] = [[[0, W], [run, 0]], [[H / sa, W], [H / sa + run, 0]]];
   const length = H / sa + run;
-  if (Math.max(...all.map((q) => q[0])) > length + 1e-6) problems.push('housings run past the top end cut');
   return { plan: p, length, width: W, angleDeg: p.pitchDeg, housings, endCuts, problems };
 }

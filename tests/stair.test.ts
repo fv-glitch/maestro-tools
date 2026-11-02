@@ -42,4 +42,15 @@ describe('housed stringer', () => {
   it('flags a stringer too narrow for the housings', () => {
     expect(housedStringer({ ...base, stringerW: 200 }).problems.join()).toMatch(/widen the stringer/);
   });
+  it('end risers run out past the end cuts and joints overlap by the cutter radius', () => {
+    const r = L.housings.filter((h) => h.kind === 'riser');
+    const t1 = L.housings.find((h) => h.kind === 'tread')!.corners;
+    // riser 1 bottom corners sit below the floor line (stringer side of the cut is Y above the line)
+    const [[x0, y0], [x1, y1]] = L.endCuts[0];
+    const side = ([x, y]: number[]) => (x1 - x0) * (y - y0) - (y1 - y0) * (x - x0);
+    expect(Math.sign(side(r[0].corners[0]))).not.toBe(Math.sign(side([1000, 280])));
+    // riser 1 top is 8 above the underside of tread 1 (perpendicular to the tread, i.e. along the riser)
+    expect(Math.hypot(r[0].corners[3][0] - r[0].corners[0][0], r[0].corners[3][1] - r[0].corners[0][1])).toBeCloseTo(180 - 32 + 8 + 10, 6);
+    expect(Math.hypot(t1[1][0] - t1[0][0], t1[1][1] - t1[0][1])).toBeCloseTo(20 + 280 + 18 + 8, 6);
+  });
 });
