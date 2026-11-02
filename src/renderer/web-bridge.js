@@ -32,6 +32,7 @@
     generate: (job) => post('/api/generate', job),
     check: (door, jamb, doorX0, handleHeight) => post('/api/check', { door, jamb, doorX0, handleHeight }),
     openView: async () => { const id = await pickAndUpload(); return id ? post('/api/view', { id }) : undefined; },
+    stair: (form) => post('/api/stair', form),
     showInFolder: async (link) => { const a = document.createElement('a'); a.href = link; a.download = ''; document.body.appendChild(a); a.click(); a.remove(); },
   };
 })();

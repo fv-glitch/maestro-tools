@@ -27,7 +27,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 table { border-collapse: collapse; margin: 10px 0; font-variant-numeric: tabular-nums; }
 th, td { text-align: right; padding: 3px 10px; border-bottom: 1px solid var(--line); }
 th:first-child, td:first-child { text-align: left; }
-td.ok { color: var(--ok); } td.near { color: var(--near); } td.out { color: var(--out); font-weight: 700; }
+td.ok { color: var(--ok); } td.near { color: var(--near); } td.out, li.out { color: var(--out); font-weight: 700; }
 ul { margin: 6px 0; padding-left: 18px; }
 
 /* viewer */

@@ -14,6 +14,7 @@ import { readPgmx, getXml } from '../engine/archive';
 import { viewModelOf } from '../view/model';
 import { alignDoorJamb } from '../check/alignment';
 import { generate, type Job } from '../ops/generate';
+import { stairJob, type StairForm } from '../ops/stairJob';
 
 const PORT = Number(process.env.PORT ?? 8080);
 const DATA = path.resolve(process.env.DATA_DIR ?? 'data');
@@ -130,6 +131,13 @@ const server = createServer(async (req, res) => {
       const g = generate(job, { door: s.masters.door!, jambLH: s.masters.jambLH!, jambRH: s.masters.jambRH! }, { outDir, heightHand: s.heightHand });
       const dl = (f: string) => `/api/download/${id}/${encodeURIComponent(path.basename(f))}`;
       return send(res, 200, { ...g, doorPath: dl(g.doorPath), jambPath: dl(g.jambPath) });
+    }
+    if (req.method === 'POST' && p === '/api/stair') {
+      const form = await json<StairForm>(req);
+      const id = randomUUID(); const outDir = path.join(DATA, 'out', id); mkdirSync(outDir);
+      const r = stairJob(form, outDir);
+      if (!r.file) rmSync(outDir, { recursive: true, force: true });
+      return send(res, 200, { ...r, file: r.file ? `/api/download/${id}/${encodeURIComponent(path.basename(r.file))}` : undefined });
     }
     if (req.method === 'GET' && p.startsWith('/api/download/')) {
       const f = outFile(p);

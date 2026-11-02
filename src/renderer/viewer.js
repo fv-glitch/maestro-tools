@@ -281,13 +281,14 @@
     emit('mt:mode'); if (m === '2d') applyView();
   }
 
+  function show(m) {
+    model = m; sel = null; hidden.clear(); $('#viewName').textContent = `${m.name}  (${m.L} x ${m.W} x ${m.T})`;
+    $('#stepInfo').style.display = 'none';
+    list(); draw(); fit(); emit('mt:model');
+  }
+  window.mtViewer.show = show;   // other tabs hand over a model (e.g. a generated stringer)
   $('#openView').addEventListener('click', async () => {
-    try {
-      const m = await maestro.openView(); if (!m) return;
-      model = m; sel = null; hidden.clear(); $('#viewName').textContent = `${m.name}  (${m.L} x ${m.W} x ${m.T})`;
-      $('#stepInfo').style.display = 'none';
-      list(); draw(); fit(); emit('mt:model');
-    } catch (err) { $('#viewName').textContent = err.message; }
+    try { const m = await maestro.openView(); if (m) show(m); } catch (err) { $('#viewName').textContent = err.message; }
   });
   $('#showOff').addEventListener('change', () => { if (model) { list(); draw(); emit('mt:state'); } });
   $('#showMoves').addEventListener('change', () => { draw(); emit('mt:state'); });
