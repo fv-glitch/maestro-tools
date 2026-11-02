@@ -4,11 +4,13 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { generate, type Job } from '../ops/generate';
 import { alignDoorJamb } from '../check/alignment';
 import { readPgmx, getXml } from '../engine/archive';
-import { viewModelOf } from '../view/model';
+import { viewModelOf, viewModel } from '../view/model';
+import { applyEdits, editFile, needsTemplates, programTree, type Edit } from '../ops/edit';
+import { loadTemplates } from '../ops/cabinet';
 
-interface Settings { door: string; jambLH: string; jambRH: string; outDir: string; heightHand: 'LH' | 'RH' }
+interface Settings { door: string; jambLH: string; jambRH: string; outDir: string; heightHand: 'LH' | 'RH'; itm: string; tdr: string; apex: string }
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS: Settings = { door: '', jambLH: '', jambRH: '', outDir: 'C:\\Users\\Public\\Documents\\SCM Group\\MaestroLab\\Projects\\2026\\Generated', heightHand: 'LH' };
+const DEFAULTS: Settings = { door: '', jambLH: '', jambRH: '', outDir: 'C:\\Users\\Public\\Documents\\SCM Group\\MaestroLab\\Projects\\2026\\Generated', heightHand: 'LH', itm: '', tdr: '', apex: '' };
 function loadSettings(): Settings {
   try { return { ...DEFAULTS, ...JSON.parse(readFileSync(settingsFile(), 'utf8')) }; } catch { return { ...DEFAULTS }; }
 }
@@ -43,6 +45,34 @@ ipcMain.handle('view:open', async () => {
   const r = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Maestro program', extensions: ['pgmx'] }] });
   if (r.canceled) return undefined;
   return viewModelOf(readPgmx(r.filePaths[0]), path.basename(r.filePaths[0], '.pgmx'));
+});
+// ---- program editing (Program tab)
+const xmlOf = (p: string) => getXml(readPgmx(p));
+function templates(edits: Edit[]) {
+  if (!needsTemplates(edits)) return undefined;
+  const s = loadSettings();
+  for (const k of ['itm', 'tdr', 'apex'] as const) if (!s[k] || !existsSync(s[k])) throw new Error('Set the ITM, TestingDoorReal and APEX Passage template programs in Setup first');
+  return loadTemplates(xmlOf(s.itm), xmlOf(s.tdr), xmlOf(s.apex));
+}
+const toolsOf = (p: string) => { const a = readPgmx(p); const e = a.entries.find((x) => /\.tlgx$/i.test(x.name)); return e ? new TextDecoder().decode(e.data) : undefined; };
+ipcMain.handle('program:open', async () => {
+  const r = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Maestro program', extensions: ['pgmx'] }] });
+  if (r.canceled) return undefined;
+  const p = r.filePaths[0]; const name = path.basename(p, '.pgmx');
+  return { path: p, name, model: viewModelOf(readPgmx(p), name), tree: programTree(xmlOf(p)) };
+});
+ipcMain.handle('program:preview', (_e, p: string, edits: Edit[]) => {
+  const r = applyEdits(xmlOf(p), edits, templates(edits));
+  return { ...r, xml: undefined, model: viewModel(r.xml, path.basename(p, '.pgmx') + ' (preview - not saved)', toolsOf(p)), tree: programTree(r.xml) };
+});
+ipcMain.handle('program:save', async (_e, p: string, edits: Edit[]) => {
+  const stem = path.basename(p, '.pgmx');
+  const r = await dialog.showSaveDialog({ defaultPath: path.join(path.dirname(p), stem + ' edited.pgmx'), filters: [{ name: 'Maestro program', extensions: ['pgmx'] }] });
+  if (r.canceled || !r.filePath) return undefined;
+  const out = /\.pgmx$/i.test(r.filePath) ? r.filePath : r.filePath + '.pgmx';
+  const res = editFile(p, edits, out, templates(edits));
+  const name = path.basename(out, '.pgmx');
+  return { path: out, name, log: res.log, notes: res.notes, model: viewModelOf(readPgmx(out), name), tree: programTree(xmlOf(out)) };
 });
 ipcMain.handle('shell:show', (_e, p: string) => shell.showItemInFolder(p));
 

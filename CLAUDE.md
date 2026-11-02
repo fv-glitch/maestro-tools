@@ -64,6 +64,16 @@ so the file format is stable.
 - Housing walls follow BoardT (expressions); stored toolpaths are for BoardT = 18 (18.2 wide).
 - UNTESTED in Maestro (Nov 2026): first panel + saw programs need opening and saving on the Maestro PC.
 
+## Program editing (src/ops/edit.ts, Program tab, CLI `edit`)
+
+- Added steps go through `Builder` (same templates as the panel jobs); toolpaths computed by us (the owner, 2 Nov 2026),
+  Maestro re-checks on open + save. Builder inserts after the last top-level step, before the trailing park move(s).
+- Refused: adding steps where the templates' Plane/WorkPiece/Layer IDs are missing (jamb masters), on/off or rename of
+  steps inside a macro instance, renaming macro instances (generated plane names hang off them), park moves, messages.
+- Roadmap + example programs the owner is supplying: scoping doc (profiles, free pockets, circles, all-face drilling,
+  saw grooves/angles, macros, 5-axis). Every new op type needs a proven template from him first.
+- UNTESTED in Maestro (Nov 2026): any program saved by the editor.
+
 ## Renderer
 
 - Plain scripts, no ES modules (Chromium blocks module scripts from file://, which is how Electron

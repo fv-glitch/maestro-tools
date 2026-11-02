@@ -120,6 +120,7 @@ export function applyEdits(xml: string, edits: Edit[], tp?: Templates): EditResu
         notes.add(`macro instance '${x.name}' was off and holds no steps: Maestro must expand it from its macro file on open - check it is there before cutting`);
       }
     } else {
+      if (x.type === 'VisualSubProgram') throw err(i, `'${x.name}' is a macro instance - its name is tied to the planes Maestro generates for it, so it is not renamed here`);
       const to = e.to.trim(); if (!to) throw err(i, 'empty name');
       if (x.nameAt < 0) throw err(i, `cannot find the name of '${x.name}'`);
       flagEdits.push([x.nameAt, x.nameAt + x.nameLen, escXml(to)]);
@@ -189,4 +190,15 @@ export function editFile(src: string, edits: Edit[], out: string, tp?: Templates
   const r = applyEdits(getXml(a), edits, tp);
   writePgmx(a, r.xml, out, path.basename(out).replace(/\.pgmx$/i, ''));
   return r;
+}
+
+export interface TreeRow { id: string; type: string; name: string; enabled: boolean; depth: number; locked?: string; noRename?: boolean }
+
+/** The workplan as rows for the editor: what can be switched on/off or renamed, and why not when locked. */
+export function programTree(xml: string): TreeRow[] {
+  return workplan(xml).execs.filter((e) => e.id).map((e) => {
+    const mac = e.parents.find((p) => p.type === 'VisualSubProgram');
+    const locked = mac ? `inside macro instance '${mac.name}'` : e.type === 'Xn' ? 'park move' : e.type === 'Xmsg' ? 'message' : undefined;
+    return { id: e.id, type: e.type, name: e.name, enabled: e.enabled, depth: e.depth, ...(locked ? { locked } : {}), ...(e.type === 'VisualSubProgram' ? { noRename: true } : {}) };
+  });
 }

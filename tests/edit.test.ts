@@ -74,6 +74,7 @@ describe.skipIf(!have)('program editing', () => {
 
   it('refuses edits that would be unsafe or lost', () => {
     expect(() => applyEdits(apex, [{ op: 'enable', step: 'Routing', on: true }])).toThrow(/inside macro instance/);
+    expect(() => applyEdits(apex, [{ op: 'rename', step: 'Hinge 1 Left', to: 'H1' }])).toThrow(/macro instance/);
     expect(() => applyEdits(tdr, [{ op: 'drill', x: 5000, y: 10, dia: 8, depth: 5 }], tp)).toThrow(/outside the part/);
     expect(() => applyEdits(tdr, [{ op: 'pocket', x0: 0, y0: 0, x1: 5, y1: 100, depth: 5 }], tp)).toThrow(/narrower/);
     expect(() => applyEdits(tdr, [{ op: 'drill', x: 'nope+1', y: 10, dia: 8, depth: 5 }], tp)).toThrow(/unknown variable/);

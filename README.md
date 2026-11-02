@@ -3,6 +3,40 @@
 Standalone CNC/CAM tools for the SCM Maestro programs.
 Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 
+## Programming (Program tab / `edit`)
+
+Open any door-family program (TestingDoorReal, ITM, APEX Passage, the door masters), queue edits, preview them in the
+viewer and save to a NEW file (the source is never written):
+
+- add a rectangle pocket (top, E016), a 3 / 8 mm hole (top, E022 / E024), an 8 mm edge hole (E024) or a through saw cut
+  (E015) - clones of proven steps with toolpaths computed here. Pocket sides and hole X / Y take a formula
+  (e.g. `dx1-300`), stored as an expression so the step follows size changes in Maestro
+- turn steps, groups and macro instances on or off; rename steps and groups (not steps inside a macro instance -
+  Maestro rebuilds those - and not macro instances themselves)
+- jamb masters are refused for added steps (their plane / workpiece IDs differ from the templates')
+- templates: set ITM, TestingDoorReal and APEX Passage in Setup (only read)
+
+Everything saved is PROVISIONAL: open it in Maestro, check the steps, save, view it again, then cut.
+
+```
+node dist/cli.js edit "TestingDoorReal.pgmx" edits.json "TestingDoorReal edited.pgmx" --itm "Beta-Optimised - Final.pgmx" --tdr TestingDoorReal.pgmx --apex "APEX Passage.pgmx"
+```
+
+`edits.json`:
+
+```json
+{ "edits": [
+  { "op": "pocket", "x0": "dx1-300", "y0": 100, "x1": "dx1-200", "y1": 160, "depth": 5, "name": "E016 8mm - Recess" },
+  { "op": "drill", "x": 500, "y": "dy1/2", "dia": 8, "depth": 12 },
+  { "op": "edgeDrill", "edge": "Y0", "pos": 400, "z": 18, "depth": 20 },
+  { "op": "saw", "axis": "y", "at": 300, "run": 100 },
+  { "op": "enable", "step": "Routing", "on": false },
+  { "op": "rename", "step": "Pocket", "to": "Pocket old" }
+] }
+```
+
+`step` is a step's name (must be unique) or its Key ID. Edges: Y0 front (y = 0), Y1 back, X0 bottom end (x = 0), X1 top end.
+
 ## Panel jobs (carcass / flat-pack)
 
 `panels` turns a CNC package (`parts.json`: outline, pockets, face holes, edge holes per part, two setups F1/F0)
@@ -27,6 +61,7 @@ node dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --i
 | Hardware fitter - caliper readings to perfect-fit pockets / macros | planned |
 | **Program checker** - door vs jamb hinges, screws, latch/strike, against the job | door/jamb alignment done |
 | **Web service** - the same app served from a homelab (Docker), upload/download | v1 |
+| **Program editor** - add pockets, holes, edge holes, saw cuts; steps on/off; rename; preview; save as new (app + CLI `edit`) | phase 1, needs a first run in Maestro |
 | **Viewer** - open any .pgmx: 2D (faces unfolded around the top) or 3D (orbit around the part), stored toolpaths by tool, step tree with groups, hide/highlight, mouse + touch. **Cut size**: the material each step removes at the real tool width (from the program's tool library), coloured by depth, with the size of each cut (e.g. `57.33 x 25.44 (X x Z), 3.06 deep`); 3D shows the simulated pockets and bores | v3 |
 | DXF / logo tools | planned |
 
@@ -69,8 +104,10 @@ TestingDoorReal. They are left out of the Docker image and the installers.
 
 ```
 src/engine/   archive (zip), pgmx (exact-text editing), params (variables/expressions),
-              geometry (records + toolpaths), validate (safety checks), pyfmt (number format)
-src/ops/      operations built on the engine (recorded.ts = the proven Oct-2026 builds)
+              geometry (records + toolpaths), validate (safety checks), pyfmt (number format),
+              workplan (read-only map of the workplan executables)
+src/ops/      operations built on the engine (recorded.ts = the proven Oct-2026 builds,
+              cabinet.ts = Builder, edit.ts = program editing)
 src/main/     Electron main + preload
 src/renderer/ UI
 ```
