@@ -54,3 +54,47 @@ describe('housed stringer', () => {
     expect(Math.hypot(t1[1][0] - t1[0][0], t1[1][1] - t1[0][1])).toBeCloseTo(20 + 280 + 18 + 8, 6);
   });
 });
+
+import { existsSync as exists } from 'node:fs';
+import { readPgmx, getXml } from '../src/engine/archive';
+import { assertSafe } from '../src/engine/validate';
+import { stepList, stepParts, trajectoryRecords } from '../src/engine/pgmx';
+import { testStringerProgram, TEST_STAIR } from '../src/ops/stairProgram';
+
+const SF = ['fixtures/tdr-latest.pgmx', 'fixtures/stair-test.pgmx'];
+describe.skipIf(!SF.every(exists))('test stringer program', () => {
+  const [tdr, stair] = SF.map((f) => getXml(readPgmx(f)));
+  const out = testStringerProgram(tdr, stair);
+  const pts = (recs: string[]) => recs.flatMap((rec) => {
+    const [h, g] = rec.trim().split('\n'); const [, t0, t1] = h.split(' ').map(Number); const v = g.trim().split(' ').map(Number);
+    if (v[0] === 1) return [0, 1].map((k) => [v[1] + v[4] * (k ? t1 : t0), v[2] + v[5] * (k ? t1 : t0), v[3]]);
+    const [, cx, cy, cz, , , , ux, uy, uz, wx, wy, wz, rr] = v;   // 2: centre, normal, u, v, radius
+    return [t0, (t0 + t1) / 2, t1].map((t) => [cx + rr * (Math.cos(t) * ux + Math.sin(t) * wx), cy + rr * (Math.cos(t) * uy + Math.sin(t) * wy), cz + rr * (Math.cos(t) * uz + Math.sin(t) * wz)]);
+  });
+  it('is safe, has TDR setup + park, and one enabled housing step', () => {
+    assertSafe(tdr, out.xml);
+    expect(out.xml).toContain('<Executable i:type="Xn">');
+    expect(out.xml).toContain('a:SuctionCupSetup');
+    expect(stepList(out.xml)).toEqual([['Stringer', 'true'], ['E019 16mm - Stringer housings', 'true'], ['Park Right(2)(1)', 'true']]);
+    expect([out.L, out.W, out.T]).toEqual([1450, 290, 42]);
+  });
+  it('pocket outline lies on the housing rectangles from the stair maths', () => {
+    const p = stepParts(out.xml, 'E019 16mm - Stringer housings');
+    const geo = [...p.geometry.text.matchAll(/string>8 [^\n]*\n1 (\S+) (\S+) /g)].map((m) => [+m[1], +m[2]]);
+    expect(geo).toHaveLength(20);
+    const rects = housedStringer(TEST_STAIR).housings.map((h) => h.corners);
+    const onEdge = ([x, y]: number[]) => rects.some((c) => c.some((a, i) => { const b = c[(i + 1) % 4];
+      const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy), t = ((x - a[0]) * dx + (y - a[1]) * dy) / l;
+      return t > -0.01 && t < l + 0.01 && Math.abs(((x - a[0]) * dy - (y - a[1]) * dx) / l) < 0.01; }));
+    for (const q of geo) expect(onEdge(q), `${q}`).toBe(true);
+    // tool centre at cutting depth stays inside the outline, >= 8 (E019 radius) from every edge
+    const segs = geo.map((a, i) => [a, geo[(i + 1) % geo.length]]);
+    const inside = (x: number, y: number) => { let c = false; for (const [a, b] of segs) if ((a[1] > y) !== (b[1] > y) && x < a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1])) c = !c; return c; };
+    const dist = (x: number, y: number) => Math.min(...segs.map(([a, b]) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)); return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy); }));
+    const cut = pts(trajectoryRecords(p.operation.text)).filter((q) => q[2] < 42);
+    expect(cut.length).toBeGreaterThan(100);
+    expect(Math.min(...cut.map((q) => q[2]))).toBeCloseTo(30, 6);          // 12 deep from the 42 top
+    for (const [x, y] of cut) { expect(inside(x, y)).toBe(true); expect(dist(x, y)).toBeGreaterThan(8 - 0.01); }
+  });
+});
