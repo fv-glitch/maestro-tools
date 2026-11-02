@@ -1,10 +1,10 @@
 /**
- * Stringer programs. The template is Shane's first stair test (fixtures/stair-test.pgmx, made in Maestro from
+ * Stringer programs. The template is the first stair test (fixtures/stair-test.pgmx, made in Maestro from
  * test-stringer-3R-v2.dxf): step 'Outline Pocket' = every tread and riser housing as ONE ClosedPocket on the
  * Top plane, E019, 12 deep, 2 levels of 6, with the toolpath Maestro computed.
  *
  * That project has no bars/cups and no Xn park move, so the M100 rejects it. Here the step is cloned onto the
- * emptied TestingDoorReal (blankProgram), which carries TDR's setup. Shane sets the bars and cups by hand at the
+ * emptied TestingDoorReal (blankProgram), which carries TDR's setup. The operator sets the bars and cups by hand at the
  * machine, so the setup is only there to keep the machine happy.
  *
  * testStringerProgram clones the step unchanged (Maestro's own toolpath, only the 540-rise 3R test stair).
@@ -206,7 +206,7 @@ const KERF = 3.15, SAW_Z = -0.2;
 
 /**
  * One E015 through cut along `from` -> `to` (the finished face), extended `run` past both ends so the saw is in
- * position before it reaches the board. Clones Shane's cut (SideOfFeature Right / Left = blade on the right / left
+ * position before it reaches the board. Clones the hand-drawn cut (SideOfFeature Right / Left = blade on the right / left
  * of travel); the geometry line is the kerf edge and the blade centre runs half a kerf to the blade side, Z -0.2.
  * Maestro adds an OperationGenerated plane per saw cut when it saves; it is not cloned (nothing references it).
  */
@@ -231,7 +231,7 @@ export function endSaw(ids: Ids, tpl: string[], from: Pt, to: Pt, side: 'Left' |
 
 /**
  * Stringer program for any housed stair: TDR blank of length x stringerW x stringerT (length rounded up to the
- * mm), Shane's one-pocket step with our outline and toolpath, then (with sawXml) the level floor and top end
+ * mm), the template's one-pocket step with our outline and toolpath, then (with sawXml) the level floor and top end
  * cuts on the E015 saw. Provisional until opened + saved in Maestro.
  */
 export function stringerProgram(tdr: string, stairPgmxXml: string, s: StairInput, name = 'E019 16mm - Stringer housings', sawXml?: string) {

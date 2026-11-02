@@ -151,7 +151,7 @@ describe.skipIf(!(SF.every(exists) && exists(SAWF)))('stringer end saw cuts', ()
   const [tdr, stair, saw] = [...SF, SAWF].map((f) => getXml(readPgmx(f)));
   const nums = (s: string) => s.trim().split(/\s+/).map(Number);
   const descs = (b: string) => [...b.matchAll(/(?:<b:Type>(\w+)<\/b:Type>.*?)?_serializationGeometryDescription>([^<]*)</gs)].map((m) => nums(m[2]));
-  it('3R test stair: both cuts match the ones Shane drew in Maestro (100 run-out, blade on the waste side)', () => {
+  it('3R test stair: both cuts match the ones drawn by hand in Maestro (100 run-out, blade on the waste side)', () => {
     const out = stringerProgram(tdr, stair, TEST_STAIR, undefined, saw);
     assertSafe(tdr, out.xml);
     expect(stepList(out.xml).map((x) => x[0])).toEqual(['Stringer', 'E019 16mm - Stringer housings', 'E015 Saw - Floor cut', 'E015 Saw - Top cut', 'Park Right(2)(1)']);

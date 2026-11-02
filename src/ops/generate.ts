@@ -1,12 +1,12 @@
 /**
  * Door + jamb generator, v1.
  *
- * Copies Shane's masters and sets the job's variables. Derived variables are recomputed here;
+ * Copies the masters and sets the job's variables. Derived variables are recomputed here;
  * macro placements, hinge positions etc. are re-evaluated by Maestro when it opens the file.
  * The alignment check then reads the machining stored in the generated files - if Maestro has not
  * yet applied a size change, the check shows it (re-check after opening and saving in Maestro).
  *
- * Hands (Shane, Oct 31 2026): one LH-hinge door program serves both hands; the hardware is machined
+ * Hands (owner, Oct 31 2026): one LH-hinge door program serves both hands; the hardware is machined
  * on the other side. The handle is at `height` for one hand and at `dx1 - height` for the other
  * (door turned end for end). The jamb uses the LH or RH master; Lockposition is always the real height.
  */

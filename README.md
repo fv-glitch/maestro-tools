@@ -1,6 +1,6 @@
 # Maestro Tools
 
-Standalone CNC/CAM tools for the SCM Maestro programs used at Central ITM.
+Standalone CNC/CAM tools for SCM Maestro programs.
 Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 
 ## Panel jobs (carcass / flat-pack)
@@ -48,7 +48,7 @@ node dist/cli.js steps "program.pgmx"     # enabled machining with extents
 node dist/cli.js safe "program.pgmx"      # file-health checks
 ```
 
-### First run on scm-pc
+### First run on the Maestro PC
 
 1. Setup tab: pick the APEX Passage door master, the LH and RH 112 28mm APEX Strike jambs, an output folder.
 2. Generate a job with a different handle height (e.g. 1000). It will say PROVISIONAL.

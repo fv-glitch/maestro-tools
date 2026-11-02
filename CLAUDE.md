@@ -1,7 +1,7 @@
 # Maestro Tools - rules for working on this repo
 
 Generates and edits SCM Maestro `.pgmx` programs that run on a real CNC. Mistakes cut real doors.
-Shane (the owner) is a CNC operator and developer; he is locked to his current Maestro version,
+The owner is a CNC operator and developer, locked to their current Maestro version,
 so the file format is stable.
 
 ## Hard rules
@@ -15,7 +15,7 @@ so the file format is stable.
    proven builds; do not switch to `String(n)`.
 4. **Regex replacements on `_serializationGeometryDescription` must replace only the opening tag**
    (first match). Matching the closing tag too is what broke a file on Oct 30.
-5. **Clone proven steps, never invent structure.** Templates live in Shane's programs/macros
+5. **Clone proven steps, never invent structure.** Templates live in the owner's programs/macros
    (e.g. ITM `Beta-Optimised - Final.pgmx`: Albo pilots, AlboPassage spindle helix, Futura barrel
    bore, AlboLatch faceplate pocket + 3mm routing). Remap all Key IDs via `cloneBlocks`.
 6. **Keep composite element keys when an operation's `StartMachiningPoint` references them**
@@ -23,11 +23,11 @@ so the file format is stable.
    Profile start: `MiddleOfMostLengthElement`, or an ElementKey on the long edge inside the part.
 7. **Keep strategy flags from circle templates**: ITM circles use `IsHelicStrategy=true` with
    `AllowMultiplePasses=false`. Turning the helix off makes Maestro plunge full depth in one pass.
-8. **Prefer Shane's macros (VisualSubProgram instances, `.xsp` in MaestroLab\Macros\User) and their
+8. **Prefer the owner's macros (VisualSubProgram instances, `.xsp` in MaestroLab\Macros\User) and their
    parameters** over hand-editing their expanded steps. Disabled instances hold no steps; Maestro
    expands them from the macro file.
 9. **Back plane (the dy1 edge): plane x = dx1 - world X**, plane y = world Z (thickness).
-10. **Never overwrite a source program.** Write new files; Shane edits in Maestro between runs.
+10. **Never overwrite a source program.** Write new files; the owner edits in Maestro between runs.
 11. Parity tests must stay byte-identical. If an engine change alters output, it needs a reason
     and a machine test, not a fixture update.
 
@@ -50,8 +50,8 @@ so the file format is stable.
 - Generator sets input variables, recomputes derived variables (engine/formula.ts evaluates
   Maestro's formula language; trig is in degrees), writes new files, and runs the alignment check
   on the STORED machining plus job-intent rows. If any formula on a macro/step reads a changed
-  variable the result is PROVISIONAL until Shane opens + saves both files in Maestro and re-checks.
-  UNTESTED: whether Maestro re-evaluates everything on open - confirm on scm-pc before relying on it.
+  variable the result is PROVISIONAL until the owner opens + saves both files in Maestro and re-checks.
+  UNTESTED: whether Maestro re-evaluates everything on open - confirm on the Maestro PC before relying on it.
 
 ## Panel jobs (src/ops/cabinet.ts, panelJob.ts)
 
@@ -62,21 +62,21 @@ so the file format is stable.
 - Edge planes: Front x=X, Left x=W-Y, Right x=Y, Back x=L-X; plane y = Z on all four (from the planes' P/N/Vx).
 - Saw: SideOfFeature=Left puts the blade on the left of travel; geometry line = kerf edge, blade centre = plan cut.
 - Housing walls follow BoardT (expressions); stored toolpaths are for BoardT = 18 (18.2 wide).
-- UNTESTED in Maestro (Nov 2026): first panel + saw programs need opening and saving on scm-pc.
+- UNTESTED in Maestro (Nov 2026): first panel + saw programs need opening and saving on the Maestro PC.
 
 ## Stairs (src/ops/stair.ts) - groundwork only
 
 - Maths + housed-stringer layout, no .pgmx output yet. Limits: NZBC D1/AS1 main private stair (rise <= 190,
   going >= 280, pitch <= 37, nosing <= 25, 4 m per flight); default going from 2R+G = 630 (assumption).
-- Housings run at the pitch. Template: fixtures/stair-test.pgmx (Shane, from test-stringer-3R-v2.dxf), step
+- Housings run at the pitch. Template: fixtures/stair-test.pgmx (the owner, from test-stringer-3R-v2.dxf), step
   'Outline Pocket' = all housings as ONE E019 ClosedPocket, 12 deep. Joints overlap by the tool radius (8) and end
   risers run past the end cuts so no corner radius lands where a board seats.
-- src/ops/stairProgram.ts clones it onto the emptied TDR (setup + park; Shane sets bars/cups by hand at the machine).
+- src/ops/stairProgram.ts clones it onto the emptied TDR (setup + park; the owner sets bars/cups by hand at the machine).
   testStringerProgram = Maestro's own toolpath (3R test only; loaded on the M100 2026-11-02). stringerProgram = any
   stair: union outline + our path (contour at the tool radius, CW arcs round reflex corners in Maestro's arc form,
   plus an out-and-back along each tread centre line to clear the island where a riser meets a tread). Needs housings
   2..4 tool radii wide. Tested to cut everything Maestro's path cuts on the test stair. CLI: `stair`. UNTESTED on the machine.
-- End cuts: E015 saw clones of Shane's 'Cut with blade' (SideOfFeature Right, floor) / '(1)' (Left, top) in
+- End cuts: E015 saw clones of the owner's 'Cut with blade' (SideOfFeature Right, floor) / '(1)' (Left, top) in
   fixtures/stair-sawcuts.pgmx; level cuts at the pitch, 100 run-out past each edge, through 42, Z -0.2. Our output
   matches his to 0.003. Maestro adds an OperationGenerated plane per saw cut on save (holds a copy of the geometry
   key - that's where the 'duplicate' IDs in saved saw files come from); not cloned. Top plumb cut not modelled.
@@ -97,4 +97,4 @@ so the file format is stable.
 Hinges in the APEX masters (checker output): centre pocket+screws 0.4 low on the jamb at any length
 (door centre hinge is a fixed 945.4, jamb Hinge C is a fixed 945); top pocket +0.2 (door follows
 dx1-150-89.2, jamb is a fixed 1741 so it drifts when the door is not 1980); bottom screws -0.1.
-Fix pending Shane's go-ahead.
+Fix pending the owner's go-ahead.

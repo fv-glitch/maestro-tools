@@ -2,7 +2,7 @@
  * Door vs jamb alignment, from the machining stored in both programs.
  *
  * Coordinates: jamb X runs from the foot; door X0 is the bottom for the "height" hand and the top
- * for the "dx1 - height" hand (Shane machines both hands from one LH-hinge door program, turning
+ * for the "dx1 - height" hand (both hands are machined from one LH-hinge door program, turning
  * the door end for end). Jamb X = floor height + footclearance + shiftcut.
  */
 import { machiningOf, type Machining } from './machining';
@@ -40,7 +40,7 @@ export function alignDoorJamb(doorXml: string, jambXml: string, doorX0: DoorEnd 
   if (dh.length !== jh.length) notes.push(`hinge count differs: door ${dh.length}, jamb ${jh.length}`);
   const names = dh.length === 3 ? ['bottom', 'centre', 'top'] : dh.map((_, i) => String(i + 1));
   dh.forEach((d, i) => { if (jh[i]) push(`hinge ${names[i]} pocket start`, d[0], jh[i][0]); });
-  // door length: the end hinges sit the same distance from both ends on Shane's doors
+  // door length: the end hinges sit the same distance from both ends on these doors
   if (dh.length >= 2) expectRow('door: top hinge gap = bottom gap', dh[0][0], L - dh[dh.length - 1][1]);
 
   const isHole = (m: Machining) => /hingehole/i.test(m.macro ?? '') && m.feature === 'RoundHole' && m.center;

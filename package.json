@@ -26,11 +26,11 @@
     "vitest": "^2.1.8",
     "three": "^0.169.0"
   },
-  "author": "Shane (Central ITM)",
+  "author": "fv-glitch",
   "build": {
     "appId": "nz.co.centralitm.maestrotools",
     "productName": "Maestro Tools",
-    "copyright": "Central ITM",
+    "copyright": "fv-glitch",
     "directories": {
       "output": "release",
       "buildResources": "build"
