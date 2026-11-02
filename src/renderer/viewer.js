@@ -281,13 +281,14 @@
     emit('mt:mode'); if (m === '2d') applyView();
   }
 
+  function load(m) {
+    model = m; sel = null; hidden.clear(); $('#viewName').textContent = `${m.name}  (${m.L} x ${m.W} x ${m.T})`;
+    $('#stepInfo').style.display = 'none';
+    list(); draw(); fit(); emit('mt:model');
+  }
+  window.mtViewer.load = load;   // the Program tab shows previews here
   $('#openView').addEventListener('click', async () => {
-    try {
-      const m = await maestro.openView(); if (!m) return;
-      model = m; sel = null; hidden.clear(); $('#viewName').textContent = `${m.name}  (${m.L} x ${m.W} x ${m.T})`;
-      $('#stepInfo').style.display = 'none';
-      list(); draw(); fit(); emit('mt:model');
-    } catch (err) { $('#viewName').textContent = err.message; }
+    try { const m = await maestro.openView(); if (m) load(m); } catch (err) { $('#viewName').textContent = err.message; }
   });
   $('#showOff').addEventListener('change', () => { if (model) { list(); draw(); emit('mt:state'); } });
   $('#showMoves').addEventListener('change', () => { draw(); emit('mt:state'); });

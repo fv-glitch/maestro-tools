@@ -14,6 +14,9 @@ import { readPgmx, getXml } from '../engine/archive';
 import { viewModelOf } from '../view/model';
 import { alignDoorJamb } from '../check/alignment';
 import { generate, type Job } from '../ops/generate';
+import { applyEdits, editFile, needsTemplates, programTree, type Edit } from '../ops/edit';
+import { loadTemplates } from '../ops/cabinet';
+import { viewModel } from '../view/model';
 
 const PORT = Number(process.env.PORT ?? 8080);
 const DATA = path.resolve(process.env.DATA_DIR ?? 'data');
@@ -23,8 +26,9 @@ const MAX_UPLOAD = 60 * 1024 * 1024;
 const KEEP_MS = 7 * 24 * 3600 * 1000;           // uploads and outputs are cleaned after a week
 for (const d of ['masters', 'uploads', 'out']) mkdirSync(path.join(DATA, d), { recursive: true });
 
-type Slot = 'door' | 'jambLH' | 'jambRH';
-const SLOTS: Slot[] = ['door', 'jambLH', 'jambRH'];
+type Slot = 'door' | 'jambLH' | 'jambRH' | 'itm' | 'tdr' | 'apex';
+const SLOTS: Slot[] = ['door', 'jambLH', 'jambRH', 'itm', 'tdr', 'apex'];
+const JOB_SLOTS: Slot[] = ['door', 'jambLH', 'jambRH'];
 interface Settings { heightHand: 'LH' | 'RH'; masters: Partial<Record<Slot, string>> }
 const settingsFile = path.join(DATA, 'settings.json');
 const loadSettings = (): Settings => { try { return { heightHand: 'LH', masters: {}, ...JSON.parse(readFileSync(settingsFile, 'utf8')) }; } catch { return { heightHand: 'LH', masters: {} }; } };
@@ -125,7 +129,7 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'POST' && p === '/api/generate') {
       const job = await json<Job>(req); const s = loadSettings();
-      for (const k of SLOTS) if (!s.masters[k] || !existsSync(s.masters[k]!)) return send(res, 400, { error: `Upload the ${k} master in Setup first` });
+      for (const k of JOB_SLOTS) if (!s.masters[k] || !existsSync(s.masters[k]!)) return send(res, 400, { error: `Upload the ${k} master in Setup first` });
       const id = randomUUID(); const outDir = path.join(DATA, 'out', id); mkdirSync(outDir);
       const g = generate(job, { door: s.masters.door!, jambLH: s.masters.jambLH!, jambRH: s.masters.jambRH! }, { outDir, heightHand: s.heightHand });
       const dl = (f: string) => `/api/download/${id}/${encodeURIComponent(path.basename(f))}`;
@@ -141,6 +145,30 @@ const server = createServer(async (req, res) => {
       if (!SLOTS.includes(k) || !f || !existsSync(f)) return send(res, 404, { error: 'no such master' });
       res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(path.basename(f))}` });
       createReadStream(f).pipe(res); return;
+    }
+    if (req.method === 'POST' && p.startsWith('/api/program/')) {
+      const q = await json<{ id: string; edits?: Edit[] }>(req);
+      const src = q.id.startsWith('/api/download/') ? outFile(q.id) : uploaded(q.id); const stem = path.basename(src, '.pgmx');
+      const a = readPgmx(src); const x = getXml(a); const edits = q.edits ?? [];
+      const tl = a.entries.find((e) => /\.tlgx$/i.test(e.name)); const tools = tl ? new TextDecoder().decode(tl.data) : undefined;
+      const tp = () => {
+        if (!needsTemplates(edits)) return undefined;
+        const m = loadSettings().masters;
+        for (const k of ['itm', 'tdr', 'apex'] as const) if (!m[k] || !existsSync(m[k]!)) throw new Error('Upload the ITM, TestingDoorReal and APEX Passage template programs in Setup first');
+        return loadTemplates(getXml(readPgmx(m.itm!)), getXml(readPgmx(m.tdr!)), getXml(readPgmx(m.apex!)));
+      };
+      if (p === '/api/program/open') return send(res, 200, { path: q.id, name: stem, model: viewModel(x, stem, tools), tree: programTree(x) });
+      if (p === '/api/program/preview') {
+        const r = applyEdits(x, edits, tp());
+        return send(res, 200, { log: r.log, notes: r.notes, model: viewModel(r.xml, stem + ' (preview - not saved)', tools), tree: programTree(r.xml) });
+      }
+      if (p === '/api/program/save') {
+        const id = randomUUID(); const outDir = path.join(DATA, 'out', id); mkdirSync(outDir);
+        const name = safeName(stem.replace(/ edited(\(\d+\))?$/, '') + ' edited.pgmx'); const out = path.join(outDir, name);
+        const r = editFile(src, edits, out, tp()); const nx = getXml(readPgmx(out)); const nstem = path.basename(out, '.pgmx');
+        const link = `/api/download/${id}/${encodeURIComponent(name)}`;
+        return send(res, 200, { path: link, name: nstem, log: r.log, notes: r.notes, model: viewModel(nx, nstem, tools), tree: programTree(nx) });
+      }
     }
     if (p === '/api/health') return send(res, 200, { ok: true });
     send(res, 404, { error: 'not found' });

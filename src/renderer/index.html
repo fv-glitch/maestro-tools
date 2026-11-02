@@ -12,6 +12,7 @@
     <h1>Maestro Tools</h1>
     <nav>
       <button data-tab="job" class="on">Door + jamb</button>
+      <button data-tab="program">Program</button>
       <button data-tab="view">Viewer</button>
       <button data-tab="check">Check</button>
       <button data-tab="setup">Setup</button>
@@ -49,6 +50,57 @@
       <div id="result"></div>
     </section>
 
+    <section id="tab-program" class="tab">
+      <div class="row"><button id="openProgram" class="primary">Open program...</button><span id="programName" class="path">-</span></div>
+      <p class="hint">Edits are kept in a list and only written when you save, always to a new file. Added steps are clones of proven steps
+        with toolpaths computed here: open the saved file in Maestro, check it, save it, then view it again before cutting.</p>
+      <div class="editor" id="editor" hidden>
+        <div class="panel tree"><b>Steps</b><div id="programTree"></div></div>
+        <div>
+          <form id="addStep" class="panel">
+            <b>Add a step</b>
+            <div class="grid2">
+              <label>Type <select name="op">
+                <option value="pocket">Pocket (rectangle, top, E016 8mm)</option>
+                <option value="drill">Hole (top, E022 3mm / E024 8mm)</option>
+                <option value="edgeDrill">Edge hole (E024 8mm)</option>
+                <option value="saw">Saw cut (through, E015)</option></select></label>
+              <label>Name <input name="name" placeholder="default for the type" /></label>
+              <label>Group <input name="group" placeholder="Added in Maestro Tools" /></label>
+            </div>
+            <div class="grid2" data-for="pocket">
+              <label>X from <input name="x0" placeholder="e.g. 200 or dx1-300" /></label><label>X to <input name="x1" /></label>
+              <label>Y from <input name="y0" /></label><label>Y to <input name="y1" /></label>
+              <label>Depth <input name="depth" type="number" step="0.1" /></label>
+            </div>
+            <div class="grid2" data-for="drill" hidden>
+              <label>X <input name="x" placeholder="e.g. 500 or dx1/2" /></label><label>Y <input name="y" /></label>
+              <label>Diameter <select name="dia"><option value="8">8 mm (E024)</option><option value="3">3 mm (E022)</option></select></label>
+              <label>Depth <input name="depth" type="number" step="0.1" /></label>
+            </div>
+            <div class="grid2" data-for="edgeDrill" hidden>
+              <label>Edge <select name="edge"><option value="Y0">Y0 (front, y = 0)</option><option value="Y1">Y1 (back, y = width)</option>
+                <option value="X0">X0 (bottom end, x = 0)</option><option value="X1">X1 (top end, x = length)</option></select></label>
+              <label>Position along the edge <input name="pos" type="number" step="0.1" /></label>
+              <label>Height above the bottom face <input name="z" type="number" step="0.1" /></label>
+              <label>Depth <input name="depth" type="number" step="0.1" /></label>
+            </div>
+            <div class="grid2" data-for="saw" hidden>
+              <label>Cut along <select name="axis"><option value="x">X (length)</option><option value="y">Y (width)</option></select></label>
+              <label>Blade centre at <input name="at" type="number" step="0.1" /></label>
+              <label>Run past the ends <input name="run" type="number" step="1" value="100" /></label>
+            </div>
+            <p class="hint">X / Y fields of pockets and holes take a number or a formula over the program's variables; a formula is stored with the step so it follows size changes in Maestro.</p>
+            <div class="row"><button type="submit">Add to the list</button></div>
+          </form>
+          <div class="panel"><b>Edits to save</b><ol id="editList"></ol>
+            <div class="row"><button id="previewEdits">Preview in viewer</button><button id="saveEdits" class="primary">Save as new file...</button><button id="clearEdits">Clear</button></div>
+            <div id="editResult"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="tab-view" class="tab">
       <div class="row"><button id="openView" class="primary">Open program...</button><span id="viewName" class="path">-</span>
         <label class="check"><input id="showOff" type="checkbox" /> show turned-off steps</label>
@@ -80,6 +132,10 @@
       <div class="row"><button data-pick="door">Door master...</button><span data-show="door" class="path"></span></div>
       <div class="row"><button data-pick="jambLH">LH jamb master...</button><span data-show="jambLH" class="path"></span></div>
       <div class="row"><button data-pick="jambRH">RH jamb master...</button><span data-show="jambRH" class="path"></span></div>
+      <div class="row"><button data-pick="itm">ITM template...</button><span data-show="itm" class="path"></span></div>
+      <div class="row"><button data-pick="tdr">TestingDoorReal template...</button><span data-show="tdr" class="path"></span></div>
+      <div class="row"><button data-pick="apex">APEX Passage template...</button><span data-show="apex" class="path"></span></div>
+      <p class="hint">The three templates hold the proven steps the Program tab clones (ITM 'Beta-Optimised - Final', TestingDoorReal, APEX Passage). They are only read.</p>
       <div class="row"><button data-pick-dir="outDir">Output folder...</button><span data-show="outDir" class="path"></span></div>
       <div class="row"><label>Hand that uses handle = height
         <select id="heightHand"><option>LH</option><option>RH</option></select></label>
@@ -89,5 +145,6 @@
   <script src="app.js"></script>
   <script src="viewer.js"></script>
   <script src="viewer3d.js"></script>
+  <script src="program.js"></script>
 </body>
 </html>

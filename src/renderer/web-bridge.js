@@ -32,6 +32,9 @@
     generate: (job) => post('/api/generate', job),
     check: (door, jamb, doorX0, handleHeight) => post('/api/check', { door, jamb, doorX0, handleHeight }),
     openView: async () => { const id = await pickAndUpload(); return id ? post('/api/view', { id }) : undefined; },
+    openProgram: async () => { const id = await pickAndUpload(); return id ? post('/api/program/open', { id }) : undefined; },
+    previewProgram: (id, edits) => post('/api/program/preview', { id, edits }),
+    saveProgram: (id, edits) => post('/api/program/save', { id, edits }),
     showInFolder: async (link) => { const a = document.createElement('a'); a.href = link; a.download = ''; document.body.appendChild(a); a.click(); a.remove(); },
   };
 })();
