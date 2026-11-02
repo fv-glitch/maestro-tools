@@ -64,9 +64,9 @@ so the file format is stable.
 - Housing walls follow BoardT (expressions); stored toolpaths are for BoardT = 18 (18.2 wide).
 - UNTESTED in Maestro (Nov 2026): first panel + saw programs need opening and saving on the Maestro PC.
 
-## Stairs (src/ops/stair.ts) - groundwork only
+## Stairs (src/ops/stair.ts, stairProgram.ts, stairJob.ts)
 
-- Maths + housed-stringer layout, no .pgmx output yet. Limits: NZBC D1/AS1 main private stair (rise <= 190,
+- Maths + housed-stringer layout. Limits: NZBC D1/AS1 main private stair (rise <= 190,
   going >= 280, pitch <= 37, nosing <= 25, 4 m per flight); default going from 2R+G = 630 (assumption).
 - Housings run at the pitch. Template: fixtures/stair-test.pgmx (the owner, from test-stringer-3R-v2.dxf), step
   'Outline Pocket' = all housings as ONE E019 ClosedPocket, 12 deep. Joints overlap by the tool radius (8) and end
@@ -80,6 +80,8 @@ so the file format is stable.
   fixtures/stair-sawcuts.pgmx; level cuts at the pitch, 100 run-out past each edge, through 42, Z -0.2. Our output
   matches his to 0.003. Maestro adds an OperationGenerated plane per saw cut on save (holds a copy of the geometry
   key - that's where the 'duplicate' IDs in saved saw files come from); not cloned. Top plumb cut not modelled.
+- App + web: Stairs tab -> src/ops/stairJob.ts (IPC 'stair:generate' -> <outDir>/Stairs; web POST /api/stair -> download).
+  Templates ship in dist/templates (copied from fixtures/ by scripts/copy-renderer.mjs; Dockerfile copies those 3 fixtures).
 
 ## Renderer
 
