@@ -6,7 +6,7 @@
  *   circle : `2 cx cy 0 0 0 1 1 0 -0 -0 1 0 r`  (Top-plane geometry)
  *
  * Shapes proven on the machine: rectangle loops (faceplates, dust boxes, strikes), stadium pockets
- * (flush pull), circle loops, copied ITM helix (spindle, barrel bore), single-plunge drills.
+ * (flush pull), circle loops, copied show-door helix (spindle, barrel bore), single-plunge drills.
  */
 import { ln } from './pgmx';
 import { pyRepr as r } from './pyfmt';

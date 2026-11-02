@@ -1,6 +1,6 @@
 # Maestro Tools
 
-Standalone CNC/CAM tools for the SCM Maestro programs.
+Standalone CNC/CAM tools for SCM Maestro programs.
 Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 
 ## Panel jobs (carcass / flat-pack)
@@ -15,7 +15,7 @@ into one program per part per setup, plus saw programs from a cut plan (`scripts
 - saw: rips along X per sheet, crosscuts along Y per strip (E015, blade centre on the plan's kerf, runs 100 past both ends)
 
 ```
-node dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --itm "Beta-Optimised - Final.pgmx" --apex "APEX Passage.pgmx"
+node dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --template "Beta-Optimised - Final.pgmx" --apex "APEX Passage.pgmx"
 ```
 
 ## Tools
@@ -62,8 +62,10 @@ latch set, groups, spindle helix, start point, jamb strike) and requires the out
 **byte-identical** to the files that were opened in Maestro and run on the machine.
 
 The fixtures in `./fixtures/` are real shop programs: the before/after files of each proven build,
-the APEX Passage door + LH/RH APEX Strike jamb masters, the ITM show door (template source) and
-TestingDoorReal. They are left out of the Docker image and the installers.
+the APEX Passage door + LH/RH APEX Strike jamb masters, the show door (template source) and
+TestingDoorReal. They are **not in git** (`fixtures/` is ignored) and are left out of the Docker image
+and the installers. Copy them into `./fixtures/` to run the suites that need them; without them those
+suites are skipped, not failed.
 
 ## Layout
 

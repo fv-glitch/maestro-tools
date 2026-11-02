@@ -1,11 +1,11 @@
 /**
  * Panel programs built from scratch for flat-pack / carcass work (first job: the window wall library).
  *
- * Nothing here invents Maestro structure. A blank program is the owner's TestingDoorReal with every
+ * Nothing here invents Maestro structure. A blank program is the TestingDoorReal master with every
  * machining step, subprogram, feature, geometry, operation, variable and expression removed (the
  * workpiece, planes, layers, setup and park move stay exactly as Maestro wrote them). Steps are
  * clones of proven templates:
- *   pocket      ITM  'E016 8mm - Pocket(3)-1143main7_1(1)(1)'   rectangle ClosedPocket, Top
+ *   pocket      show door 'E016 8mm - Pocket(3)-1143main7_1(1)(1)'   rectangle ClosedPocket, Top
  *   drill 3/8   TDR  'E022 3mm Drill - Dummy pilot 1 RH hung', 'E024 8mm Drill - QF stud 1 RH hung'
  *   edge drill  APEX 'Boring' (HingeHoleLH1, Front plane) with the tool swapped to E024
  *   saw         APEX 'Cut Side LH' (cut along X) and 'Cut Side LH(1)' (cut along Y), E015
@@ -22,15 +22,15 @@ const E024 = '2149911873';
 
 export interface Templates { pocket: string[]; drill3: string[]; drill8: string[]; edge: string[]; sawX: string[]; sawY: string[]; src: string[] }
 
-export function loadTemplates(itm: string, tdr: string, apex: string): Templates {
+export function loadTemplates(showDoor: string, tdr: string, apex: string): Templates {
   return {
-    pocket: blocks(itm, 'E016 8mm - Pocket(3)-1143main7_1(1)(1)'),
+    pocket: blocks(showDoor, 'E016 8mm - Pocket(3)-1143main7_1(1)(1)'),
     drill3: blocks(tdr, 'E022 3mm Drill - Dummy pilot 1 RH hung'),
     drill8: blocks(tdr, 'E024 8mm Drill - QF stud 1 RH hung'),
     edge: blocks(apex, 'Boring'),
     sawX: blocks(apex, 'Cut Side LH'),
     sawY: blocks(apex, 'Cut Side LH(1)'),
-    src: [itm, tdr, apex],
+    src: [showDoor, tdr, apex],
   };
 }
 
@@ -126,7 +126,7 @@ export class Builder {
     expr?: { x0?: string; x1?: string; y0?: string; y1?: string }): void {
     let [st, fm, gm, om] = cloneBlocks(this.ids, this.tp.pocket);
     const Lx = x1 - x0, Wy = y1 - y0; const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-    // same member order and directions as the ITM template: x1,y1 -> x0,y1 -> x0,y0 -> x1,y0 -> x1,y1
+    // same member order and directions as the show-door template: x1,y1 -> x0,y1 -> x0,y0 -> x1,y0 -> x1,y1
     const rect = [`8 0 ${r(Lx)}\n1 ${r(x1)} ${r(y1)} 0 -1 0 0 \n`, `8 0 ${r(Wy)}\n1 ${r(x0)} ${r(y1)} 0 0 -1 0 \n`,
       `8 0 ${r(Lx)}\n1 ${r(x0)} ${r(y0)} 0 1 0 0 \n`, `8 0 ${r(Wy)}\n1 ${r(x1)} ${r(y0)} 0 0 1 0 \n`];
     gm = setGeoName(setMembers(this.ids, gm, rect), name.replace(/^E0\d+ [^-]*- /, '').replace(/ /g, ''));
