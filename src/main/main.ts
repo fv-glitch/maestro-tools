@@ -8,9 +8,9 @@ import { viewModelOf, viewModel } from '../view/model';
 import { applyEdits, editFile, needsTemplates, programTree, programVars, type Edit } from '../ops/edit';
 import { loadTemplates } from '../ops/cabinet';
 
-interface Settings { door: string; jambLH: string; jambRH: string; outDir: string; heightHand: 'LH' | 'RH'; itm: string; tdr: string; apex: string }
+interface Settings { door: string; jambLH: string; jambRH: string; outDir: string; heightHand: 'LH' | 'RH'; showDoor: string; tdr: string; apex: string }
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS: Settings = { door: '', jambLH: '', jambRH: '', outDir: 'C:\\Users\\Public\\Documents\\SCM Group\\MaestroLab\\Projects\\2026\\Generated', heightHand: 'LH', itm: '', tdr: '', apex: '' };
+const DEFAULTS: Settings = { door: '', jambLH: '', jambRH: '', outDir: 'C:\\Users\\Public\\Documents\\SCM Group\\MaestroLab\\Projects\\2026\\Generated', heightHand: 'LH', showDoor: '', tdr: '', apex: '' };
 function loadSettings(): Settings {
   try { return { ...DEFAULTS, ...JSON.parse(readFileSync(settingsFile(), 'utf8')) }; } catch { return { ...DEFAULTS }; }
 }
@@ -51,8 +51,8 @@ const xmlOf = (p: string) => getXml(readPgmx(p));
 function templates(edits: Edit[]) {
   if (!needsTemplates(edits)) return undefined;
   const s = loadSettings();
-  for (const k of ['itm', 'tdr', 'apex'] as const) if (!s[k] || !existsSync(s[k])) throw new Error('Set the ITM, TestingDoorReal and APEX Passage template programs in Setup first');
-  return loadTemplates(xmlOf(s.itm), xmlOf(s.tdr), xmlOf(s.apex));
+  for (const k of ['showDoor', 'tdr', 'apex'] as const) if (!s[k] || !existsSync(s[k])) throw new Error('Set the show door (Beta-Optimised - Final), TestingDoorReal and APEX Passage template programs in Setup first');
+  return loadTemplates(xmlOf(s.showDoor), xmlOf(s.tdr), xmlOf(s.apex));
 }
 const toolsOf = (p: string) => { const a = readPgmx(p); const e = a.entries.find((x) => /\.tlgx$/i.test(x.name)); return e ? new TextDecoder().decode(e.data) : undefined; };
 ipcMain.handle('program:open', async () => {

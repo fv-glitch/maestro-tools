@@ -26,8 +26,8 @@ const MAX_UPLOAD = 60 * 1024 * 1024;
 const KEEP_MS = 7 * 24 * 3600 * 1000;           // uploads and outputs are cleaned after a week
 for (const d of ['masters', 'uploads', 'out']) mkdirSync(path.join(DATA, d), { recursive: true });
 
-type Slot = 'door' | 'jambLH' | 'jambRH' | 'itm' | 'tdr' | 'apex';
-const SLOTS: Slot[] = ['door', 'jambLH', 'jambRH', 'itm', 'tdr', 'apex'];
+type Slot = 'door' | 'jambLH' | 'jambRH' | 'showDoor' | 'tdr' | 'apex';
+const SLOTS: Slot[] = ['door', 'jambLH', 'jambRH', 'showDoor', 'tdr', 'apex'];
 const JOB_SLOTS: Slot[] = ['door', 'jambLH', 'jambRH'];
 interface Settings { heightHand: 'LH' | 'RH'; masters: Partial<Record<Slot, string>> }
 const settingsFile = path.join(DATA, 'settings.json');
@@ -154,8 +154,8 @@ const server = createServer(async (req, res) => {
       const tp = () => {
         if (!needsTemplates(edits)) return undefined;
         const m = loadSettings().masters;
-        for (const k of ['itm', 'tdr', 'apex'] as const) if (!m[k] || !existsSync(m[k]!)) throw new Error('Upload the ITM, TestingDoorReal and APEX Passage template programs in Setup first');
-        return loadTemplates(getXml(readPgmx(m.itm!)), getXml(readPgmx(m.tdr!)), getXml(readPgmx(m.apex!)));
+        for (const k of ['showDoor', 'tdr', 'apex'] as const) if (!m[k] || !existsSync(m[k]!)) throw new Error('Upload the show door (Beta-Optimised - Final), TestingDoorReal and APEX Passage template programs in Setup first');
+        return loadTemplates(getXml(readPgmx(m.showDoor!)), getXml(readPgmx(m.tdr!)), getXml(readPgmx(m.apex!)));
       };
       if (p === '/api/program/open') return send(res, 200, { path: q.id, name: stem, model: viewModel(x, stem, tools), tree: programTree(x), vars: programVars(x) });
       if (p === '/api/program/preview') {

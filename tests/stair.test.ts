@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { describeWithFixtures } from './needs';
 import { planStair, housedStringer } from '../src/ops/stair';
 
 const base = { totalRise: 2700, treadT: 32, riserT: 18, stringerW: 290, stringerT: 42 };
@@ -55,14 +56,13 @@ describe('housed stringer', () => {
   });
 });
 
-import { existsSync as exists } from 'node:fs';
 import { readPgmx, getXml } from '../src/engine/archive';
 import { assertSafe } from '../src/engine/validate';
 import { stepList, stepParts, trajectoryRecords } from '../src/engine/pgmx';
 import { testStringerProgram, TEST_STAIR } from '../src/ops/stairProgram';
 
 const SF = ['fixtures/tdr-latest.pgmx', 'fixtures/stair-test.pgmx'];
-describe.skipIf(!SF.every(exists))('test stringer program', () => {
+describeWithFixtures(SF)('test stringer program', () => {
   const [tdr, stair] = SF.map((f) => getXml(readPgmx(f)));
   const out = testStringerProgram(tdr, stair);
   const pts = (recs: string[]) => recs.flatMap((rec) => {
@@ -100,7 +100,7 @@ describe.skipIf(!SF.every(exists))('test stringer program', () => {
 });
 
 import { stringerProgram } from '../src/ops/stairProgram';
-describe.skipIf(!SF.every(exists))('stringer program (our toolpath)', () => {
+describeWithFixtures(SF)('stringer program (our toolpath)', () => {
   const [tdr, stair] = SF.map((f) => getXml(readPgmx(f)));
   const name = 'E019 16mm - Stringer housings';
   const recPts = (recs: string[], z: number) => recs.flatMap((rec) => {   // dense points along each record at height z
@@ -147,11 +147,11 @@ describe.skipIf(!SF.every(exists))('stringer program (our toolpath)', () => {
 });
 
 const SAWF = 'fixtures/stair-sawcuts.pgmx';
-describe.skipIf(!(SF.every(exists) && exists(SAWF)))('stringer end saw cuts', () => {
+describeWithFixtures([...SF, SAWF])('stringer end saw cuts', () => {
   const [tdr, stair, saw] = [...SF, SAWF].map((f) => getXml(readPgmx(f)));
   const nums = (s: string) => s.trim().split(/\s+/).map(Number);
   const descs = (b: string) => [...b.matchAll(/(?:<b:Type>(\w+)<\/b:Type>.*?)?_serializationGeometryDescription>([^<]*)</gs)].map((m) => nums(m[2]));
-  it('3R test stair: both cuts match the ones the owner drew in Maestro (100 run-out, blade on the waste side)', () => {
+  it('3R test stair: both cuts match the ones drawn by hand in Maestro (100 run-out, blade on the waste side)', () => {
     const out = stringerProgram(tdr, stair, TEST_STAIR, undefined, saw);
     assertSafe(tdr, out.xml);
     expect(stepList(out.xml).map((x) => x[0])).toEqual(['Stringer', 'E019 16mm - Stringer housings', 'E015 Saw - Floor cut', 'E015 Saw - Top cut', 'Park Right(2)(1)']);

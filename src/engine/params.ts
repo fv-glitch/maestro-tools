@@ -1,10 +1,10 @@
 /**
  * Project variables and expressions (Maestro "parameters").
  * Expressions bind a geometry property to a formula, e.g. a GeomCircle's CenterX = LatchHandleX,
- * so the owner can move hardware by changing one value in Maestro.
+ * so the operator can move hardware by changing one value in Maestro.
  *
  * Proven property names: GeomCartesianPoint X/Y, GeomCircle CenterX (CenterY, Radius),
- * GeomCompositeCurve Elements[i].StartX/StartY/EndX/EndY (used by the owner's own macros).
+ * GeomCompositeCurve Elements[i].StartX/StartY/EndX/EndY (used by the shop's own macros).
  */
 import { Ids } from './pgmx';
 

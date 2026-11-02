@@ -4,7 +4,7 @@
  *
  * Every added step is a clone of a proven template through `Builder` (src/ops/cabinet.ts) - the
  * same code the panel jobs use - so nothing new is invented here:
- *   pocket     ITM  'E016 8mm - Pocket(3)-1143main7_1(1)(1)'   rectangle, Top face
+ *   pocket     show door 'E016 8mm - Pocket(3)-1143main7_1(1)(1)'   rectangle, Top face
  *   drill      TDR  'E022 3mm Drill - Dummy pilot 1 RH hung' / 'E024 8mm Drill - QF stud 1 RH hung'
  *   edgeDrill  APEX 'Boring' with the tool swapped to E024
  *   saw        APEX 'Cut Side LH' / 'Cut Side LH(1)'
@@ -58,7 +58,7 @@ const DEFAULT_GROUP = 'Added in Maestro Tools';
 /**
  * Every Plane / WorkPiece / Layer a template step points at (that exists in its source program)
  * must exist in the target under the same ID, and planes must carry the same name. The door-family
- * programs (TDR, ITM, APEX Passage, the door masters) share these IDs; the jamb masters do not, so
+ * programs (TDR, the show door, APEX Passage, the door masters) share these IDs; the jamb masters do not, so
  * adding steps to a jamb is refused until the references are remapped and machine-tested.
  */
 export function templateProblems(t: string, tp: Templates): string[] {
@@ -171,7 +171,7 @@ export function applyEdits(xml: string, edits: Edit[], tp?: Templates): EditResu
   // ---- 2. new steps, cloned through Builder
   const adds = edits.map((e, i) => [e, i] as const).filter(([e]) => ADD_OPS.has(e.op));
   if (adds.length) {
-    if (!tp) throw new Error('adding steps needs the template programs (ITM, TestingDoorReal, APEX Passage)');
+    if (!tp) throw new Error('adding steps needs the template programs (show door "Beta-Optimised - Final", TestingDoorReal, APEX Passage)');
     const probs = templateProblems(t, tp);
     if (probs.length) throw new Error('this program does not share the templates\' planes/workpiece, so steps cannot be added yet: ' + probs.slice(0, 4).join('; '));
     const b = new Builder(t, tp);

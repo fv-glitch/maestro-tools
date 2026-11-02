@@ -1,11 +1,11 @@
 # Maestro Tools
 
-Standalone CNC/CAM tools for the SCM Maestro programs.
+Standalone CNC/CAM tools for SCM Maestro programs.
 Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 
 ## Programming (Program tab / `edit`)
 
-Open any door-family program (TestingDoorReal, ITM, APEX Passage, the door masters), queue edits, preview them in the
+Open any door-family program (TestingDoorReal, the show door, APEX Passage, the door masters), queue edits, preview them in the
 viewer and save to a NEW file (the source is never written):
 
 - add a rectangle pocket (top, E016), a 3 / 8 mm hole (top, E022 / E024), an 8 mm edge hole (E024) or a through saw cut
@@ -19,12 +19,12 @@ viewer and save to a NEW file (the source is never written):
 - delete a step or a group with its feature, geometry, operation and expressions (refused if anything else uses them)
 - set input variables (calculated ones are recomputed); formulas on steps / macros are applied by Maestro on open
 - jamb masters are refused for added steps (their plane / workpiece IDs differ from the templates')
-- templates: set ITM, TestingDoorReal and APEX Passage in Setup (only read)
+- templates: set the show door (Beta-Optimised - Final), TestingDoorReal and APEX Passage in Setup (only read)
 
 Everything saved is PROVISIONAL: open it in Maestro, check the steps, save, view it again, then cut.
 
 ```
-node dist/cli.js edit "TestingDoorReal.pgmx" edits.json "TestingDoorReal edited.pgmx" --itm "Beta-Optimised - Final.pgmx" --tdr TestingDoorReal.pgmx --apex "APEX Passage.pgmx"
+node dist/cli.js edit "TestingDoorReal.pgmx" edits.json "TestingDoorReal edited.pgmx" --template "Beta-Optimised - Final.pgmx" --tdr TestingDoorReal.pgmx --apex "APEX Passage.pgmx"
 ```
 
 `edits.json`:
@@ -58,7 +58,7 @@ into one program per part per setup, plus saw programs from a cut plan (`scripts
 - saw: rips along X per sheet, crosscuts along Y per strip (E015, blade centre on the plan's kerf, runs 100 past both ends)
 
 ```
-node dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --itm "Beta-Optimised - Final.pgmx" --apex "APEX Passage.pgmx"
+node dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --template "Beta-Optimised - Final.pgmx" --apex "APEX Passage.pgmx"
 ```
 
 ## Tools
@@ -106,8 +106,10 @@ latch set, groups, spindle helix, start point, jamb strike) and requires the out
 **byte-identical** to the files that were opened in Maestro and run on the machine.
 
 The fixtures in `./fixtures/` are real shop programs: the before/after files of each proven build,
-the APEX Passage door + LH/RH APEX Strike jamb masters, the ITM show door (template source) and
-TestingDoorReal. They are left out of the Docker image and the installers.
+the APEX Passage door + LH/RH APEX Strike jamb masters, the show door (template source) and
+TestingDoorReal. They are **not in git** (`fixtures/` is ignored) and are left out of the Docker image
+and the installers. Copy them into `./fixtures/` to run the suites that need them; without them those
+suites are skipped, not failed.
 
 ## Layout
 

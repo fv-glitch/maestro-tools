@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { existsSync, mkdtempSync } from 'node:fs';
+import { it, expect } from 'vitest';
+import { mkdtempSync } from 'node:fs';
+import { describeWithFixtures } from './needs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { readPgmx, getXml, getEntryText } from '../src/engine/archive';
@@ -9,12 +10,12 @@ import { workplan, insertPoint } from '../src/engine/workplan';
 import { expressions } from '../src/engine/variables';
 import { viewModel } from '../src/view/model';
 
-const F = ['tdr-latest', 'itm-final', 'apex-passage', 'apex-jamb-lh'].map((f) => `fixtures/${f}.pgmx`);
-const have = F.every(existsSync);
+const F = ['tdr-latest', 'template-final', 'apex-passage', 'apex-jamb-lh'].map((f) => `fixtures/${f}.pgmx`);
+const describeF = describeWithFixtures([...F, 'fixtures/door-lt1.pgmx']);
 const xml = (f: string) => getXml(readPgmx(f));
 
-describe.skipIf(!have)('program editing', () => {
-  const [tdr, itm, apex, jamb] = F.map(xml); const tp = loadTemplates(itm, tdr, apex);
+describeF('program editing', () => {
+  const [tdr, show, apex, jamb] = F.map(xml); const tp = loadTemplates(show, tdr, apex);
   const tools = getEntryText(readPgmx(F[0]), 'def.tlgx');
   const added = (x: string) => viewModel(x, '', tools).steps.filter((s) => s.groups.includes('Added in Maestro Tools'));
 
@@ -99,8 +100,8 @@ describe.skipIf(!have)('program editing', () => {
   });
 });
 
-describe.skipIf(!have)('changing existing steps', () => {
-  const [tdr, itm, apex] = F.map(xml); const tp = loadTemplates(itm, tdr, apex);
+describeF('changing existing steps', () => {
+  const [tdr, show, apex] = F.map(xml); const tp = loadTemplates(show, tdr, apex);
   const tools = getEntryText(readPgmx(F[0]), 'def.tlgx');
   const step = (x: string, name: string) => viewModel(x, '', tools).steps.find((s) => s.name === name)!;
   const QF = 'E024 8mm Drill - QF stud 1 RH hung';
@@ -173,7 +174,7 @@ describe.skipIf(!have)('changing existing steps', () => {
   });
 });
 
-describe.skipIf(!have)('variables', () => {
+describeF('variables', () => {
   const [tdr] = F.map(xml);
   it('sets a variable, recomputes calculated ones, and says Maestro must apply the formulas', () => {
     const r = applyEdits(tdr, [{ op: 'variable', name: 'dx1', value: 2040 }, { op: 'variable', name: 'LatchHandleX', value: 1000 }]);
