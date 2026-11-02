@@ -61,8 +61,8 @@ export function planStair(s: StairInput): StairPlan {
 }
 
 export type Pt = [number, number];
-export interface Housing { kind: 'tread' | 'riser'; index: number; corners: Pt[]; depth: number }
-export interface StringerLayout { plan: StairPlan; length: number; width: number; angleDeg: number; housings: Housing[]; endCuts: [Pt, Pt][]; problems: string[] }
+export interface Housing { kind: 'tread' | 'riser'; index: number; corners: Pt[]; depth: number; elev: [number, number, number, number] }   // elev: u1 v1 u2 v2
+export interface StringerLayout { plan: StairPlan; length: number; width: number; angleDeg: number; housings: Housing[]; endCuts: [Pt, Pt][]; problems: string[]; toStringer: (p: Pt) => Pt; toolR: number }
 
 /** Housings on the inside face of one stringer. The opposite-hand stringer is the mirror (X -> length - X). */
 export function housedStringer(s: StairInput): StringerLayout {
@@ -76,20 +76,20 @@ export function housedStringer(s: StairInput): StringerLayout {
   // elevation -> stringer: rotate by -a about the point where the top edge meets v = 0
   const u0 = -N - (R + lift) / Math.tan(a);
   const toS = ([u, v]: Pt): Pt => { const du = u - u0, dv = v; return [du * ca + dv * sa, W + (-du * sa + dv * ca)]; };
-  const rect = (u1: number, v1: number, u2: number, v2: number): Pt[] => [[u1, v1], [u2, v1], [u2, v2], [u1, v2]].map((q) => toS(q as Pt));
+  const rect = (u1: number, v1: number, u2: number, v2: number) => ({ elev: [u1, v1, u2, v2] as [number, number, number, number], corners: [[u1, v1], [u2, v1], [u2, v2], [u1, v2]].map((q) => toS(q as Pt)) });
   const housings: Housing[] = [];
   // Joints overlap by the cutter radius and the end risers run 2 past their end cut, so the rounded
   // inside corners fall in waste (inside the other housing, behind the riser, or beyond the end cut).
   const r = s.toolR ?? 8, out = r + 2;
   for (let k = 1; k <= p.treads; k++) {
     // tread k: nosing front at (k-1)G - N, runs back past the back of riser k+1 by r
-    housings.push({ kind: 'tread', index: k, depth: p.housingDepth, corners: rect((k - 1) * G - N, k * R - s.treadT, k * G + s.riserT + r, k * R) });
+    housings.push({ kind: 'tread', index: k, depth: p.housingDepth, ...rect((k - 1) * G - N, k * R - s.treadT, k * G + s.riserT + r, k * R) });
   }
   if (s.riserT > 0) for (let k = 1; k <= p.risers; k++) {
     // riser k: from r into tread k-1's housing (or past the floor cut) to r into tread k's (or past the top floor cut)
     const bot = k > 1 ? (k - 1) * R - r : -out;
     const top = k < p.risers ? k * R - s.treadT + r : k * R + out;
-    housings.push({ kind: 'riser', index: k, depth: p.housingDepth, corners: rect((k - 1) * G, bot, (k - 1) * G + s.riserT, top) });
+    housings.push({ kind: 'riser', index: k, depth: p.housingDepth, ...rect((k - 1) * G, bot, (k - 1) * G + s.riserT, top) });
   }
   const problems = [...p.problems];
   const all = housings.flatMap((h) => h.corners);
@@ -101,5 +101,5 @@ export function housedStringer(s: StairInput): StringerLayout {
   const H = s.totalRise, run = W / Math.tan(a);
   const endCuts: [Pt, Pt][] = [[[0, W], [run, 0]], [[H / sa, W], [H / sa + run, 0]]];
   const length = H / sa + run;
-  return { plan: p, length, width: W, angleDeg: p.pitchDeg, housings, endCuts, problems };
+  return { plan: p, length, width: W, angleDeg: p.pitchDeg, housings, endCuts, problems, toStringer: toS, toolR: r };
 }

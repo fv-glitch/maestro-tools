@@ -72,7 +72,10 @@ so the file format is stable.
   'Outline Pocket' = all housings as ONE E019 ClosedPocket, 12 deep. Joints overlap by the tool radius (8) and end
   risers run past the end cuts so no corner radius lands where a board seats.
 - src/ops/stairProgram.ts clones it onto the emptied TDR (setup + park; Shane sets bars/cups by hand at the machine).
-  No polygon-pocket toolpath generator yet, so only the 540-rise 3R test stair can be written. Do not rotate the rect template by hand.
+  testStringerProgram = Maestro's own toolpath (3R test only; loaded on the M100 2026-11-02). stringerProgram = any
+  stair: union outline + our path (contour at the tool radius, CW arcs round reflex corners in Maestro's arc form,
+  plus an out-and-back along each tread centre line to clear the island where a riser meets a tread). Needs housings
+  2..4 tool radii wide. Tested to cut everything Maestro's path cuts on the test stair. CLI: `stair`. UNTESTED on the machine.
 
 ## Renderer
 

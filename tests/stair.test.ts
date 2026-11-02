@@ -98,3 +98,50 @@ describe.skipIf(!SF.every(exists))('test stringer program', () => {
     for (const [x, y] of cut) { expect(inside(x, y)).toBe(true); expect(dist(x, y)).toBeGreaterThan(8 - 0.01); }
   });
 });
+
+import { stringerProgram } from '../src/ops/stairProgram';
+describe.skipIf(!SF.every(exists))('stringer program (our toolpath)', () => {
+  const [tdr, stair] = SF.map((f) => getXml(readPgmx(f)));
+  const name = 'E019 16mm - Stringer housings';
+  const recPts = (recs: string[], z: number) => recs.flatMap((rec) => {   // dense points along each record at height z
+    const [h, g] = rec.trim().split('\n'); const [, t0, t1] = h.split(' ').map(Number); const v = g.trim().split(' ').map(Number);
+    if (Math.abs(v[3] - z) > 1e-6 || (v[0] === 1 && v[6] !== 0)) return [];
+    const n = Math.max(2, Math.ceil(Math.abs(t1 - t0) * (v[0] === 1 ? 1 : v[13]) / 0.25));
+    return Array.from({ length: n + 1 }, (_, k) => { const t = t0 + (t1 - t0) * k / n;
+      return v[0] === 1 ? [v[1] + v[4] * t, v[2] + v[5] * t] : [v[1] + v[13] * (Math.cos(t) * v[7] + Math.sin(t) * v[10]), v[2] + v[13] * (Math.cos(t) * v[8] + Math.sin(t) * v[11])]; });
+  });
+  const near = (pts: number[][], x: number, y: number, d: number) => pts.some((p) => (p[0] - x) ** 2 + (p[1] - y) ** 2 <= d * d);
+
+  it('test stair: same outline as Maestro and cuts everything Maestro cuts', () => {
+    const ours = stringerProgram(tdr, stair, TEST_STAIR);
+    assertSafe(tdr, ours.xml);
+    const theirs = stepParts(stair, 'Outline Pocket');
+    const tg = [...theirs.geometry.text.matchAll(/string>8 [^\n]*\n1 (\S+) (\S+) /g)].map((m) => [+m[1], +m[2]]);
+    expect(ours.pocket.outline).toHaveLength(tg.length);
+    for (const q of ours.pocket.outline) expect(tg.some((p) => Math.hypot(p[0] - q[0], p[1] - q[1]) < 0.002), `${q}`).toBe(true);
+    const mine = recPts(trajectoryRecords(stepParts(ours.xml, name).operation.text), 30);
+    const ref = recPts(trajectoryRecords(theirs.operation.text), 30);
+    let checked = 0;
+    for (let x = 320; x < 1120; x += 2) for (let y = 30; y < 245; y += 2) {
+      if (!near(ref, x, y, 8)) continue; checked++;
+      expect(near(mine, x, y, 8.05), `${x},${y}`).toBe(true);
+    }
+    expect(checked).toBeGreaterThan(5000);
+  });
+  it('full flight: 2700 rise, 15 risers, one pocket, tool >= 8 inside, 12 deep', () => {
+    const s = { ...TEST_STAIR, totalRise: 2700 };
+    const out = stringerProgram(tdr, stair, s);
+    assertSafe(tdr, out.xml);
+    expect(out.L).toBe(Math.ceil(housedStringer(s).length));
+    const p = stepParts(out.xml, name);
+    const geo = out.pocket.outline; const segs = geo.map((a, i) => [a, geo[(i + 1) % geo.length]]);
+    const dist = (x: number, y: number) => Math.min(...segs.map(([a, b]) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)); return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy); }));
+    const pts = [36, 30].flatMap((z) => recPts(trajectoryRecords(p.operation.text), z));
+    expect(pts.length).toBeGreaterThan(1000);
+    for (const [x, y] of pts) expect(dist(x, y)).toBeGreaterThan(8 - 1e-6);
+    // every tread and riser housing is reached: each rectangle's centre is within 8 of the path
+    for (const h of out.layout.housings) { const c = h.corners.reduce((a, q) => [a[0] + q[0] / 4, a[1] + q[1] / 4], [0, 0]);
+      expect(near(pts, c[0], c[1], 8.05), h.kind + h.index).toBe(true); }
+  });
+});

@@ -7,6 +7,7 @@
  *   safe <file.pgmx>                                file-health checks Maestro cares about
  *   generate <job.json> <masters.json> <outDir> [--height-hand LH|RH]
  *   panels <parts.json> <plan.json|-> <outDir> --base <TestingDoorReal.pgmx> --itm <ITM.pgmx> --apex <APEX Passage.pgmx>
+ *   stair <out.pgmx> --base <TestingDoorReal.pgmx> --template <stair-test.pgmx> --rise 2700 [--tread 32 --riser 18 --width 290 --thick 42 --going --risers --nosing]
  */
 import { readPgmx, getXml } from './engine/archive';
 import { alignDoorJamb, formatReport } from './check/alignment';
@@ -19,6 +20,7 @@ import * as path from 'node:path';
 import { writePgmx } from './engine/archive';
 import { assertSafe } from './engine/validate';
 import { loadTemplates } from './ops/cabinet';
+import { stringerProgram } from './ops/stairProgram';
 import { partPrograms, sawPrograms, stripPrograms, type Part, type PlanJSON, type Program } from './ops/panelJob';
 
 const [cmd, ...args] = process.argv.slice(2);
@@ -52,5 +54,17 @@ try {
     for (const p of parts) for (const pr of partPrograms(p, base, tp)) write('parts', pr);
     if (plan) for (const pr of sawPrograms(plan, base, tp)) write('saw', pr);
     writeFileSync(path.join(out, 'index.json'), JSON.stringify({ programs: index, strips: plan ? [...stripPrograms(plan)] : [] }, null, 1));
-  } else { console.log(readFileSync(__filename, 'utf8').split('\n').slice(2, 10).join('\n')); process.exitCode = 1; }
+  } else if (cmd === 'stair') {
+    const baseA = readPgmx(flag('--base')!); const base = getXml(baseA);
+    const num = (n: string, d?: number) => { const v = flag(n); return v === undefined ? d : +v; };
+    const s = { totalRise: num('--rise')!, treadT: num('--tread', 32)!, riserT: num('--riser', 18)!, stringerW: num('--width', 290)!, stringerT: num('--thick', 42)!,
+      going: num('--going'), risers: num('--risers'), nosing: num('--nosing') };
+    const out = stringerProgram(base, xml(flag('--template')!), s);
+    assertSafe(base, out.xml); const stem = path.basename(args[0]).replace(/\.pgmx$/i, '');
+    writePgmx(baseA, out.xml, args[0], stem);
+    const p = out.layout.plan;
+    console.log(`${p.risers} risers of ${p.rise.toFixed(1)}, going ${p.going.toFixed(1)}, pitch ${p.pitchDeg.toFixed(1)} deg; stringer ${out.L} x ${out.W} x ${out.T}`);
+    for (const n of p.notes) console.log('note: ' + n);
+    console.log('PROVISIONAL - open and save in Maestro before cutting');
+  } else { console.log(readFileSync(__filename, 'utf8').split('\n').slice(2, 11).join('\n')); process.exitCode = 1; }
 } catch (e) { console.error('error:', (e as Error).message); process.exitCode = 1; }
