@@ -5,7 +5,7 @@ import { generate, type Job } from '../ops/generate';
 import { alignDoorJamb } from '../check/alignment';
 import { readPgmx, getXml } from '../engine/archive';
 import { viewModelOf, viewModel } from '../view/model';
-import { applyEdits, editFile, needsTemplates, programTree, type Edit } from '../ops/edit';
+import { applyEdits, editFile, needsTemplates, programTree, programVars, type Edit } from '../ops/edit';
 import { loadTemplates } from '../ops/cabinet';
 
 interface Settings { door: string; jambLH: string; jambRH: string; outDir: string; heightHand: 'LH' | 'RH'; itm: string; tdr: string; apex: string }
@@ -59,11 +59,11 @@ ipcMain.handle('program:open', async () => {
   const r = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Maestro program', extensions: ['pgmx'] }] });
   if (r.canceled) return undefined;
   const p = r.filePaths[0]; const name = path.basename(p, '.pgmx');
-  return { path: p, name, model: viewModelOf(readPgmx(p), name), tree: programTree(xmlOf(p)) };
+  return { path: p, name, model: viewModelOf(readPgmx(p), name), tree: programTree(xmlOf(p)), vars: programVars(xmlOf(p)) };
 });
 ipcMain.handle('program:preview', (_e, p: string, edits: Edit[]) => {
   const r = applyEdits(xmlOf(p), edits, templates(edits));
-  return { ...r, xml: undefined, model: viewModel(r.xml, path.basename(p, '.pgmx') + ' (preview - not saved)', toolsOf(p)), tree: programTree(r.xml) };
+  return { ...r, xml: undefined, model: viewModel(r.xml, path.basename(p, '.pgmx') + ' (preview - not saved)', toolsOf(p)), tree: programTree(r.xml), vars: programVars(r.xml) };
 });
 ipcMain.handle('program:save', async (_e, p: string, edits: Edit[]) => {
   const stem = path.basename(p, '.pgmx');
@@ -72,7 +72,7 @@ ipcMain.handle('program:save', async (_e, p: string, edits: Edit[]) => {
   const out = /\.pgmx$/i.test(r.filePath) ? r.filePath : r.filePath + '.pgmx';
   const res = editFile(p, edits, out, templates(edits));
   const name = path.basename(out, '.pgmx');
-  return { path: out, name, log: res.log, notes: res.notes, model: viewModelOf(readPgmx(out), name), tree: programTree(xmlOf(out)) };
+  return { path: out, name, log: res.log, notes: res.notes, model: viewModelOf(readPgmx(out), name), tree: programTree(xmlOf(out)), vars: programVars(xmlOf(out)) };
 });
 ipcMain.handle('shell:show', (_e, p: string) => shell.showItemInFolder(p));
 

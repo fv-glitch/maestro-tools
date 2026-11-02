@@ -13,6 +13,11 @@ viewer and save to a NEW file (the source is never written):
   (e.g. `dx1-300`), stored as an expression so the step follows size changes in Maestro
 - turn steps, groups and macro instances on or off; rename steps and groups (not steps inside a macro instance -
   Maestro rebuilds those - and not macro instances themselves)
+- move a Top-face step or a whole group by dX / dY (geometry, feature and stored toolpath all shift together);
+  refused when the step is placed by a formula - change the variable instead
+- change the depth of a straight Top-face hole (feature depth, plunge and lift)
+- delete a step or a group with its feature, geometry, operation and expressions (refused if anything else uses them)
+- set input variables (calculated ones are recomputed); formulas on steps / macros are applied by Maestro on open
 - jamb masters are refused for added steps (their plane / workpiece IDs differ from the templates')
 - templates: set ITM, TestingDoorReal and APEX Passage in Setup (only read)
 
@@ -31,7 +36,11 @@ node dist/cli.js edit "TestingDoorReal.pgmx" edits.json "TestingDoorReal edited.
   { "op": "edgeDrill", "edge": "Y0", "pos": 400, "z": 18, "depth": 20 },
   { "op": "saw", "axis": "y", "at": 300, "run": 100 },
   { "op": "enable", "step": "Routing", "on": false },
-  { "op": "rename", "step": "Pocket", "to": "Pocket old" }
+  { "op": "rename", "step": "Pocket", "to": "Pocket old" },
+  { "op": "move", "step": "Dummy handle", "dx": 10, "dy": 0 },
+  { "op": "depth", "step": "E024 8mm Drill - QF stud 1 RH hung", "depth": 25 },
+  { "op": "delete", "step": "Flush pull" },
+  { "op": "variable", "name": "LatchHandleX", "value": 1010 }
 ] }
 ```
 
@@ -61,7 +70,7 @@ node dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --i
 | Hardware fitter - caliper readings to perfect-fit pockets / macros | planned |
 | **Program checker** - door vs jamb hinges, screws, latch/strike, against the job | door/jamb alignment done |
 | **Web service** - the same app served from a homelab (Docker), upload/download | v1 |
-| **Program editor** - add pockets, holes, edge holes, saw cuts; steps on/off; rename; preview; save as new (app + CLI `edit`) | phase 1, needs a first run in Maestro |
+| **Program editor** - add pockets, holes, edge holes, saw cuts; steps on/off, rename, move, hole depth, delete; variables; preview; save as new (app + CLI `edit`) | phase 1 test cut OK (2 Nov 2026); phase 2 needs a run in Maestro |
 | **Viewer** - open any .pgmx: 2D (faces unfolded around the top) or 3D (orbit around the part), stored toolpaths by tool, step tree with groups, hide/highlight, mouse + touch. **Cut size**: the material each step removes at the real tool width (from the program's tool library), coloured by depth, with the size of each cut (e.g. `57.33 x 25.44 (X x Z), 3.06 deep`); 3D shows the simulated pockets and bores | v3 |
 | DXF / logo tools | planned |
 

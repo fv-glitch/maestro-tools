@@ -55,7 +55,10 @@
       <p class="hint">Edits are kept in a list and only written when you save, always to a new file. Added steps are clones of proven steps
         with toolpaths computed here: open the saved file in Maestro, check it, save it, then view it again before cutting.</p>
       <div class="editor" id="editor" hidden>
-        <div class="panel tree"><b>Steps</b><div id="programTree"></div></div>
+        <div>
+          <div class="panel tree"><b>Steps</b><div id="programTree"></div></div>
+          <div class="panel"><b>Variables</b><p class="hint">Change an input and Maestro re-applies the formulas that read it when it opens the file.</p><div id="programVars"></div></div>
+        </div>
         <div>
           <form id="addStep" class="panel">
             <b>Add a step</b>

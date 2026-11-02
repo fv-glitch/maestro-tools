@@ -79,5 +79,12 @@ ul { margin: 6px 0; padding-left: 18px; }
 .tree .ty { color: var(--muted); font-size: 11px; font-family: ui-monospace, monospace; }
 .tree button, #editList button { padding: 1px 8px; font-size: 12px; }
 .tree input { display: inline-block; width: auto; flex: 1; padding: 2px 6px; }
+.tree select { display: inline-block; width: auto; margin: 0; padding: 1px 4px; font-size: 12px; }
+.tree .tr.gone .nm { text-decoration: line-through; color: var(--out); }
+.tree .inl { display: flex; gap: 8px; align-items: center; padding: 4px 0 6px; }
+.tree .inl label { display: flex; gap: 4px; align-items: center; margin: 0; }
+.tree .inl input { width: 90px; flex: none; }
 #editList { margin: 8px 0; padding-left: 22px; } #editList li { margin: 3px 0; } #editList li button { margin-left: 8px; }
 @media (max-width: 760px) { .editor { grid-template-columns: 1fr; } }
+.vars td { padding: 2px 6px; text-align: left; } .vars input { width: 110px; display: inline-block; margin: 0; padding: 2px 6px; }
+.vars input.changed { border-color: var(--accent); font-weight: 600; }

@@ -68,11 +68,16 @@ so the file format is stable.
 
 - Added steps go through `Builder` (same templates as the panel jobs); toolpaths computed by us (the owner, 2 Nov 2026),
   Maestro re-checks on open + save. Builder inserts after the last top-level step, before the trailing park move(s).
+- Existing steps (src/ops/stepEdit.ts): move = shift every `1`/`2` record + point _x/_y in the step's own geometry,
+  feature and operation (Top plane only); hole depth = feature depth + plunge length + lift start; delete = remove the
+  executable, feature, operation, geometry (unless still used) and expressions, then check no removed ID is still referenced.
+  Steps placed / sized by an expression are refused (Maestro would put them back). Variables via setVariables.
 - Refused: adding steps where the templates' Plane/WorkPiece/Layer IDs are missing (jamb masters), on/off or rename of
   steps inside a macro instance, renaming macro instances (generated plane names hang off them), park moves, messages.
 - Roadmap + example programs the owner is supplying: scoping doc (profiles, free pockets, circles, all-face drilling,
   saw grooves/angles, macros, 5-axis). Every new op type needs a proven template from him first.
-- UNTESTED in Maestro (Nov 2026): any program saved by the editor.
+- 2 Nov 2026: the owner opened, saved and test cut editor output (phase 1 step types) on the Maestro PC: works. New edit kinds
+  (move / depth / delete) are not machine-tested until he says so.
 
 ## Renderer
 

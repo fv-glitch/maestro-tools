@@ -13,9 +13,10 @@
  */
 import { Builder, type Templates, type Edge } from './cabinet';
 import { workplan, escXml } from '../engine/workplan';
+import { moveSteps, setHoleDepth, deleteSteps, stepBlocks } from './stepEdit';
 import { splice } from '../engine/pgmx';
 import { evaluate, references } from '../engine/formula';
-import { variableValues } from '../engine/variables';
+import { variableValues, setVariables, dependents, readVariables } from '../engine/variables';
 import { assertSafe } from '../engine/validate';
 import { readPgmx, getXml, writePgmx } from '../engine/archive';
 import * as path from 'node:path';
@@ -29,7 +30,11 @@ export type Edit =
   | { op: 'edgeDrill'; name?: string; group?: string; edge: Edge; pos: number; z: number; depth: number }
   | { op: 'saw'; name?: string; group?: string; axis: 'x' | 'y'; at: number; run?: number }
   | { op: 'enable'; step: string; on: boolean }
-  | { op: 'rename'; step: string; to: string };
+  | { op: 'rename'; step: string; to: string }
+  | { op: 'move'; step: string; dx: number; dy: number }
+  | { op: 'depth'; step: string; depth: number }
+  | { op: 'delete'; step: string }
+  | { op: 'variable'; name: string; value: number };
 
 export interface EditResult {
   xml: string;
@@ -81,7 +86,24 @@ export function templateProblems(t: string, tp: Templates): string[] {
 
 export function applyEdits(xml: string, edits: Edit[], tp?: Templates): EditResult {
   const log: string[] = []; const notes = new Set<string>();
-  const vars = variableValues(xml);
+  // ---- 0. variables first, so the positions and formulas below see the new values
+  let t = xml;
+  const varIn: Record<string, number> = {};
+  edits.forEach((e, i) => {
+    if (e.op !== 'variable') return;
+    if (!Number.isFinite(e.value)) throw new Error(`edit ${i + 1}: ${e.name} needs a number`);
+    varIn[e.name] = e.value;
+  });
+  if (Object.keys(varIn).length) {
+    let r;
+    try { r = setVariables(t, varIn); } catch (ex) { throw new Error('variables: ' + (ex as Error).message); }
+    t = r.xml;
+    for (const c of r.changes) log.push(`${c.name}: ${c.from} -> ${c.to}${c.derived ? ' (calculated)' : ''}`);
+    const dep = dependents(t, r.changes.map((c) => c.name));
+    if (dep.length) notes.add(`${dep.length} formula${dep.length > 1 ? 's' : ''} on steps / macros read the changed variables: Maestro applies them when it opens the file, so the stored machining (and this viewer) shows the old positions until it has been opened and saved in Maestro`);
+    if (r.changes.some((c) => ['dx1', 'dy1', 'dz1'].includes(c.name))) notes.add('the part size changed: Maestro updates the workpiece and faces from dx1 / dy1 / dz1 when it opens the file');
+  }
+  const vars = variableValues(t);
   const L = vars.dx1, W = vars.dy1, T = vars.dz1;
   if (![L, W, T].every((v) => Number.isFinite(v) && v > 0)) throw new Error('program has no dx1 / dy1 / dz1');
   const num = (v: Num, what: string): { v: number; f?: string } => {
@@ -93,41 +115,58 @@ export function applyEdits(xml: string, edits: Edit[], tp?: Templates): EditResu
   };
   const err = (i: number, msg: string) => new Error(`edit ${i + 1}: ${msg}`);
 
-  // ---- 1. flag / name edits on existing executables (by Key ID or exact name)
-  let t = xml;
-  const wp = workplan(xml);
+  // ---- 1. changes to executables already in the program (by Key ID or exact name), in order
   const find = (i: number, ref: string) => {
+    const wp = workplan(t);
     const hit = wp.execs.filter((e) => e.id === ref);
     const byName = hit.length ? hit : wp.execs.filter((e) => e.name === ref);
     if (!byName.length) throw err(i, `no step '${ref}'`);
     if (byName.length > 1) throw err(i, `'${ref}' matches ${byName.length} steps - use its ID (${byName.map((e) => e.id).join(', ')})`);
     return byName[0];
   };
-  const flagEdits: [number, number, string][] = []; const touched = new Set<string>();
+  const touched = new Set<string>(); const deleted = new Set<string>();
   edits.forEach((e, i) => {
-    if (e.op !== 'enable' && e.op !== 'rename') return;
+    if (ADD_OPS.has(e.op) || e.op === 'variable') return;
+    if (!('step' in e)) throw err(i, `unknown edit '${(e as { op: string }).op}'`);
+    if (deleted.has(e.step)) throw err(i, `'${e.step}' was deleted by an earlier edit`);
     const x = find(i, e.step);
-    const inMacro = x.parents.find((p) => p.type === 'VisualSubProgram');
-    if (inMacro) throw err(i, `'${x.name}' is inside macro instance '${inMacro.name}' - Maestro rebuilds those from the macro; change the instance instead`);
-    if (x.type === 'Xn' || x.type === 'Xmsg') throw err(i, `'${x.name}' is a ${x.type === 'Xn' ? 'park move' : 'message'} - not editable here`);
-    const key = e.op + x.id; if (touched.has(key)) throw err(i, `'${x.name}' is edited twice`); touched.add(key);
-    if (e.op === 'enable') {
-      if (x.enabledAt < 0) throw err(i, `cannot find the on/off flag of '${x.name}'`);
-      if (x.enabled === e.on) { log.push(`'${x.name}' already ${e.on ? 'on' : 'off'}`); return; }
-      flagEdits.push([x.enabledAt, x.enabledAt + x.enabledLen, e.on ? 'true' : 'false']);
-      log.push(`turned ${e.on ? 'on' : 'off'}: ${x.name}`);
-      if (x.type === 'VisualSubProgram' && e.on && !/<Elements>\s*<Executable/.test(t.slice(x.start, x.end))) {
-        notes.add(`macro instance '${x.name}' was off and holds no steps: Maestro must expand it from its macro file on open - check it is there before cutting`);
+    const key = e.op + x.id; if (touched.has(key)) throw err(i, `'${x.name}' is edited twice the same way`); touched.add(key);
+    try {
+      if (e.op === 'move' || e.op === 'depth' || e.op === 'delete') {
+        if (e.op === 'move') {
+          if (!Number.isFinite(e.dx) || !Number.isFinite(e.dy) || (e.dx === 0 && e.dy === 0)) throw new Error('move needs dx and/or dy');
+          const r = moveSteps(t, x, e.dx, e.dy, L, W); t = r.xml;
+          log.push(`moved ${e.dx >= 0 ? '+' : ''}${e.dx} in X, ${e.dy >= 0 ? '+' : ''}${e.dy} in Y: ${r.moved.join(', ')}`);
+          notes.add('moved steps keep their own toolpaths shifted by the same amount: check them in Maestro before cutting');
+        } else if (e.op === 'depth') {
+          if (!(e.depth > 0 && e.depth <= T + 0.5)) throw new Error(`depth ${e.depth} must be > 0 and at most ${T + 0.5}`);
+          t = setHoleDepth(t, x, e.depth, T); log.push(`hole depth ${e.depth}: ${x.name}`);
+        } else {
+          const r = deleteSteps(t, x); t = r.xml; deleted.add(x.id).add(x.name);
+          log.push(`deleted ${x.type === 'ExecutableGroup' ? `group '${x.name}' (${r.removed.length} steps)` : x.name}`);
+        }
+        return;
       }
-    } else {
-      if (x.type === 'VisualSubProgram') throw err(i, `'${x.name}' is a macro instance - its name is tied to the planes Maestro generates for it, so it is not renamed here`);
-      const to = e.to.trim(); if (!to) throw err(i, 'empty name');
-      if (x.nameAt < 0) throw err(i, `cannot find the name of '${x.name}'`);
-      flagEdits.push([x.nameAt, x.nameAt + x.nameLen, escXml(to)]);
-      log.push(`renamed: ${x.name} -> ${to}`);
-    }
+      const why = x.parents.find((p) => p.type === 'VisualSubProgram');
+      if (why) throw new Error(`'${x.name}' is inside macro instance '${why.name}' - Maestro rebuilds those from the macro; change the instance instead`);
+      if (x.type === 'Xn' || x.type === 'Xmsg') throw new Error(`'${x.name}' is a ${x.type === 'Xn' ? 'park move' : 'message'} - not editable here`);
+      if (e.op === 'enable') {
+        if (x.enabledAt < 0) throw new Error(`cannot find the on/off flag of '${x.name}'`);
+        if (x.enabled === e.on) { log.push(`'${x.name}' already ${e.on ? 'on' : 'off'}`); return; }
+        t = splice(t, [[x.enabledAt, x.enabledAt + x.enabledLen, e.on ? 'true' : 'false']]);
+        log.push(`turned ${e.on ? 'on' : 'off'}: ${x.name}`);
+        if (x.type === 'VisualSubProgram' && e.on && !/<Elements>\s*<Executable/.test(t.slice(x.start, x.end))) {
+          notes.add(`macro instance '${x.name}' was off and holds no steps: Maestro must expand it from its macro file on open - check it is there before cutting`);
+        }
+      } else if (e.op === 'rename') {
+        if (x.type === 'VisualSubProgram') throw new Error(`'${x.name}' is a macro instance - its name is tied to the planes Maestro generates for it, so it is not renamed here`);
+        const to = e.to.trim(); if (!to) throw new Error('empty name');
+        if (x.nameAt < 0) throw new Error(`cannot find the name of '${x.name}'`);
+        t = splice(t, [[x.nameAt, x.nameAt + x.nameLen, escXml(to)]]);
+        log.push(`renamed: ${x.name} -> ${to}`);
+      }
+    } catch (ex) { throw err(i, (ex as Error).message.replace(/^edit \d+: /, '')); }
   });
-  if (flagEdits.length) t = splice(t, flagEdits);
 
   // ---- 2. new steps, cloned through Builder
   const adds = edits.map((e, i) => [e, i] as const).filter(([e]) => ADD_OPS.has(e.op));
@@ -192,13 +231,22 @@ export function editFile(src: string, edits: Edit[], out: string, tp?: Templates
   return r;
 }
 
-export interface TreeRow { id: string; type: string; name: string; enabled: boolean; depth: number; locked?: string; noRename?: boolean }
+export interface TreeRow { id: string; type: string; name: string; enabled: boolean; depth: number; locked?: string; noRename?: boolean; feature?: string; plane?: string }
 
-/** The workplan as rows for the editor: what can be switched on/off or renamed, and why not when locked. */
+/** The workplan as rows for the editor: what can be changed, and why not when locked. */
 export function programTree(xml: string): TreeRow[] {
   return workplan(xml).execs.filter((e) => e.id).map((e) => {
     const mac = e.parents.find((p) => p.type === 'VisualSubProgram');
     const locked = mac ? `inside macro instance '${mac.name}'` : e.type === 'Xn' ? 'park move' : e.type === 'Xmsg' ? 'message' : undefined;
-    return { id: e.id, type: e.type, name: e.name, enabled: e.enabled, depth: e.depth, ...(locked ? { locked } : {}), ...(e.type === 'VisualSubProgram' ? { noRename: true } : {}) };
+    const row: TreeRow = { id: e.id, type: e.type, name: e.name, enabled: e.enabled, depth: e.depth, ...(locked ? { locked } : {}), ...(e.type === 'VisualSubProgram' ? { noRename: true } : {}) };
+    if (e.type === 'MachiningWorkingStep' && !locked) {
+      try { const b = stepBlocks(xml, e); row.feature = b.ftype; row.plane = b.plane; } catch { /* unreadable step: offer on/off only */ }
+    }
+    return row;
   });
+}
+
+/** Variables for the editor: inputs can be set, calculated ones show their formula. */
+export function programVars(xml: string): { name: string; value: string; formula?: string }[] {
+  return readVariables(xml).map((v) => ({ name: v.name, value: v.valueText, ...(v.formula ? { formula: v.formula } : {}) }));
 }

@@ -11,7 +11,7 @@ export interface Machining {
   geometry: string; box?: Box; center?: [number, number]; radius?: number;
 }
 
-function recordsBox(recs: string[]): { box?: Box; center?: [number, number]; radius?: number } {
+export function recordsBox(recs: string[]): { box?: Box; center?: [number, number]; radius?: number } {
   const pts: [number, number][] = []; let center: [number, number] | undefined; let radius: number | undefined;
   for (const rec of recs) {
     for (const m of rec.matchAll(/(?:^|\n)8 ([^\n]*)\n([12]) ([^\n]*)/g)) {
