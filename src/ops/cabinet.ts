@@ -14,6 +14,7 @@
 import { Ids, blocks, cloneBlocks, renameStep, ln, setDesc, setMembers, setTrajectory, setGeoName, setDepth, setOpValue, splice, NS_PROJECT } from '../engine/pgmx';
 import { Expressions, makeVariable, geometryRef } from '../engine/params';
 import { rectPocketPath } from '../engine/geometry';
+import { insertPoint } from '../engine/workplan';
 import { pyRepr as r } from '../engine/pyfmt';
 
 const UTIL = 'http://schemas.datacontract.org/2004/07/ScmGroup.XCam.MachiningDataModel.Utility';
@@ -66,7 +67,7 @@ export function blankProgram(base: string, L: number, W: number, T: number, extr
   return setSize(t, L, W, T);
 }
 
-function matchClose(t: string, open: number, tag: string): number {
+export function matchClose(t: string, open: number, tag: string): number {
   const re = new RegExp(`<(/?)${tag}(?:[ >/])`, 'g'); re.lastIndex = open + 1; let depth = 1; let m: RegExpExecArray | null;
   while ((m = re.exec(t))) {
     if (t[t.indexOf('>', m.index) - 1] === '/' && !m[1]) continue;   // <Elements/>
@@ -152,8 +153,11 @@ export class Builder {
     }
   }
 
-  /** Vertical hole from the top face: 3 mm (E022) or 8 mm (E024). */
-  drill(group: string, name: string, x: number, y: number, dia: 3 | 8, depth: number): void {
+  /**
+   * Vertical hole from the top face: 3 mm (E022) or 8 mm (E024).
+   * expr: optional formulas for the point's X / Y (GeomCartesianPoint X/Y, as in the DummyHandleX build).
+   */
+  drill(group: string, name: string, x: number, y: number, dia: 3 | 8, depth: number, expr?: { x?: string; y?: string }): void {
     let [st, fm, gm, om] = cloneBlocks(this.ids, dia === 3 ? this.tp.drill3 : this.tp.drill8);
     gm = gm.replace(/(<a:_x>)[^<]*(<\/a:_x><a:_y>)[^<]*(<\/a:_y>)/, (_m, a, b, c) => a + r(x) + b + r(y) + c);
     gm = setGeoName(gm, name.replace(/^E0\d+ [^-]*- /, '').replace(/ /g, ''));
@@ -162,6 +166,11 @@ export class Builder {
     om = setTrajectory(this.ids, om, [ln(x, y, this.T, 0, 0, -1, depth)]);
     om = setDesc(om, 'Lift', ln(x, y, this.T - depth, 0, 0, 1, this.CLR - this.T + depth), this.CLR - this.T + depth);
     this.add(group, renameStep(st, name, true), fm, gm, om);
+    if (expr) {
+      const [gid, gtype] = geometryRef(gm);
+      if (expr.x) this.ex.prop('X', gid, gtype, expr.x);
+      if (expr.y) this.ex.prop('Y', gid, gtype, expr.y);
+    }
   }
 
   /**
@@ -213,13 +222,16 @@ export class Builder {
     this.add(group, renameStep(st, name, true), fm, gm, om);
   }
 
-  /** Splice everything in: steps in ExecutableGroups before the park move, blocks into their sections. */
+  /**
+   * Splice everything in: steps in ExecutableGroups after the last top-level step and before the
+   * trailing park move(s) (on a blank that is the start of the workplan), blocks into their sections.
+   */
   finish(): string {
     const t = this.t;
     const groups = this.groups.map((g) => `<Executable i:type="a:ExecutableGroup" xmlns:a="${NS_PROJECT}"><Key xmlns="${UTIL}"><ID>${this.ids.take()}</ID>` +
       `<ObjectType>ScmGroup.XCam.MachiningDataModel.ProjectModule.ExecutableGroup</ObjectType></Key><Name xmlns="${UTIL}">${g.name}</Name>` +
       `<Description/><IsEnabled>true</IsEnabled><Priority>0</Priority><Elements>${g.steps.join('')}</Elements></Executable>`).join('');
-    const park = t.indexOf('<Executable i:type="Xn">');
+    const park = insertPoint(t);
     const at = (tag: string) => t.indexOf(`</${tag}>`);
     return splice(t, [[park, park, groups], [at('Features'), at('Features'), this.feats.join('')], [at('Geometries'), at('Geometries'), this.geos.join('')],
       [at('Operations'), at('Operations'), this.ops.join('')], [at('Expressions'), at('Expressions'), this.ex.items.join('')]]);

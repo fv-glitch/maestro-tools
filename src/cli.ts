@@ -7,6 +7,8 @@
  *   safe <file.pgmx>                                file-health checks Maestro cares about
  *   generate <job.json> <masters.json> <outDir> [--height-hand LH|RH]
  *   panels <parts.json> <plan.json|-> <outDir> --base <TestingDoorReal.pgmx> --itm <ITM.pgmx> --apex <APEX Passage.pgmx>
+ *   edit <in.pgmx> <edits.json> <out.pgmx> [--itm <ITM.pgmx> --tdr <TestingDoorReal.pgmx> --apex <APEX Passage.pgmx>]
+ *                                                   add steps / turn steps on or off / rename; writes a NEW file
  */
 import { readPgmx, getXml } from './engine/archive';
 import { alignDoorJamb, formatReport } from './check/alignment';
@@ -20,6 +22,7 @@ import { writePgmx } from './engine/archive';
 import { assertSafe } from './engine/validate';
 import { loadTemplates } from './ops/cabinet';
 import { partPrograms, sawPrograms, stripPrograms, type Part, type PlanJSON, type Program } from './ops/panelJob';
+import { editFile, needsTemplates, type Edit } from './ops/edit';
 
 const [cmd, ...args] = process.argv.slice(2);
 const flag = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined; };
@@ -52,5 +55,19 @@ try {
     for (const p of parts) for (const pr of partPrograms(p, base, tp)) write('parts', pr);
     if (plan) for (const pr of sawPrograms(plan, base, tp)) write('saw', pr);
     writeFileSync(path.join(out, 'index.json'), JSON.stringify({ programs: index, strips: plan ? [...stripPrograms(plan)] : [] }, null, 1));
-  } else { console.log(readFileSync(__filename, 'utf8').split('\n').slice(2, 10).join('\n')); process.exitCode = 1; }
+  } else if (cmd === 'edit') {
+    const raw = JSON.parse(readFileSync(args[1], 'utf8')) as Edit[] | { edits: Edit[] };
+    const edits = Array.isArray(raw) ? raw : raw.edits;
+    let tp;
+    if (needsTemplates(edits)) {
+      const [itm, tdr, apex] = ['--itm', '--tdr', '--apex'].map(flag);
+      if (!itm || !tdr || !apex) throw new Error('adding steps needs --itm, --tdr and --apex template programs');
+      tp = loadTemplates(xml(itm), xml(tdr), xml(apex));
+    }
+    const r = editFile(args[0], edits, args[2], tp);
+    for (const l of r.log) console.log('  ' + l);
+    console.log('wrote', args[2]);
+    console.log('status: PROVISIONAL - open it in Maestro, check the steps, save, then view it again before cutting');
+    for (const n of r.notes) console.log('  * ' + n);
+  } else { console.log(readFileSync(__filename, 'utf8').split('\n').slice(2, 12).join('\n')); process.exitCode = 1; }
 } catch (e) { console.error('error:', (e as Error).message); process.exitCode = 1; }
