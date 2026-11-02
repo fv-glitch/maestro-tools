@@ -185,37 +185,85 @@ export function stringerPocket(lay: StringerLayout, T: number, step = 6): String
   return { outline, loop, geometry, path, start: [st[0], st[1], zs[0]], end: [st[0], st[1], zs[n - 1]] };
 }
 
+/** setDepth only when the template's depth differs (keeps Maestro's own '42' rather than rewriting it as '42.0'). */
+function keepOrSetDepth(fm: string, d: number): string {
+  const m = /<EndDepth>([^<]*)<\/EndDepth><StartDepth>([^<]*)</.exec(fm);
+  return m && +m[1] === d && +m[2] === d ? fm : setDepth(fm, d);
+}
+
+/** Re-point a cloned step's workpiece / plane / layer references at the blank's own (plane matched by name). */
+function retarget(bl: string[], src: string, base: string): string[] {
+  const geo = bl[2];
+  const wp = /<a:WorkPieceID[^>]*><b:ID>(\d+)/.exec(geo)![1], pl = /<a:PlaneID[^>]*><b:ID>(\d+)/.exec(geo)![1], la = /<a:LayerID[^>]*><b:ID>(\d+)/.exec(geo)![1];
+  const plName = new RegExp(`<Plane><Key[^>]*><ID>${pl}</ID>.{0,200}?Utility">([^<]*)</Name>`, 's').exec(src);
+  if (!plName) throw new Error('template plane not found');
+  const refs: [string, string][] = [[wp, idOf(base, 'ProjectModule\\.WorkPiece')], [pl, planeId(base, plName[1])], [la, idOf(base, 'Layers\\.Layer')]];
+  return bl.map((b) => refs.reduce((x, [a, z]) => x.split('>' + a + '<').join('>' + z + '<'), b));
+}
+
+export const SAW_FILE_STEPS = { Right: 'Cut with blade', Left: 'Cut with blade(1)' } as const;   // in fixtures/stair-sawcuts.pgmx
+const KERF = 3.15, SAW_Z = -0.2;
+
+/**
+ * One E015 through cut along `from` -> `to` (the finished face), extended `run` past both ends so the saw is in
+ * position before it reaches the board. Clones Shane's cut (SideOfFeature Right / Left = blade on the right / left
+ * of travel); the geometry line is the kerf edge and the blade centre runs half a kerf to the blade side, Z -0.2.
+ * Maestro adds an OperationGenerated plane per saw cut when it saves; it is not cloned (nothing references it).
+ */
+export function endSaw(ids: Ids, tpl: string[], from: Pt, to: Pt, side: 'Left' | 'Right', T: number, run = 100): string[] {
+  let [st, fm, gm, om] = cloneBlocks(ids, tpl);
+  if (!new RegExp(`<SideOfFeature>${side}</SideOfFeature>`).test(fm)) throw new Error('saw template is not ' + side);
+  const l0 = Math.hypot(to[0] - from[0], to[1] - from[1]), d: Pt = [(to[0] - from[0]) / l0, (to[1] - from[1]) / l0];
+  const len = l0 + 2 * run, a: Pt = [from[0] - d[0] * run, from[1] - d[1] * run];
+  const n: Pt = side === 'Right' ? [d[1], -d[0]] : [-d[1], d[0]];
+  const c: Pt = [a[0] + n[0] * KERF / 2, a[1] + n[1] * KERF / 2], e: Pt = [c[0] + d[0] * len, c[1] + d[1] * len];
+  // geometry: only the first description / second parameter (rule 4)
+  gm = gm.replace(/(_serializationGeometryDescription>)[^<]*(<)/, (_m, p, q) => p + `8 0 ${r(len)}\n1 ${r(a[0])} ${r(a[1])} 0 ${r(d[0])} ${r(d[1])} 0 \n` + q)
+    .replace(/(_secondParameter>)[^<]*(<)/, (_m, p, q) => p + r(len / 2) + q);
+  fm = keepOrSetDepth(fm, T);
+  om = om.replace(/(<b:Type>TrajectoryPath<\/b:Type>.*?_serializationGeometryDescription>)[^<]*(<)/s,
+    (_m, p, q) => p + `8 0 ${r(len)}\n1 ${r(c[0])} ${r(c[1])} ${r(SAW_Z)} ${r(d[0])} ${r(d[1])} 0 \n` + q);
+  const CLR = T + 50;
+  om = setDesc(om, 'Approach', ln(c[0], c[1], CLR, 0, 0, -1, CLR - SAW_Z), CLR - SAW_Z);
+  om = setDesc(om, 'Lift', ln(e[0], e[1], SAW_Z, 0, 0, 1, CLR - SAW_Z), CLR - SAW_Z);
+  return [st, fm, gm, om];
+}
+
 /**
  * Stringer program for any housed stair: TDR blank of length x stringerW x stringerT (length rounded up to the
- * mm) plus Shane's one-pocket step with our outline and toolpath. Provisional until opened + saved in Maestro.
+ * mm), Shane's one-pocket step with our outline and toolpath, then (with sawXml) the level floor and top end
+ * cuts on the E015 saw. Provisional until opened + saved in Maestro.
  */
-export function stringerProgram(tdr: string, stairPgmxXml: string, s: StairInput, name = 'E019 16mm - Stringer housings') {
+export function stringerProgram(tdr: string, stairPgmxXml: string, s: StairInput, name = 'E019 16mm - Stringer housings', sawXml?: string) {
   const lay = housedStringer(s);
   if (lay.problems.length) throw new Error('stair problems: ' + lay.problems.join('; '));
   const L = Math.ceil(lay.length - 1e-9), W = s.stringerW, T = s.stringerT;
   const pk = stringerPocket(lay, T);
   const base = blankProgram(tdr, L, W, T);
-  const src = blocks(stairPgmxXml, TEST_STEP);
-  const geo = src[2];
-  const refs: [string, string][] = [
-    [/<a:WorkPieceID[^>]*><b:ID>(\d+)/.exec(geo)![1], idOf(base, 'ProjectModule\\.WorkPiece')],
-    [/<a:PlaneID[^>]*><b:ID>(\d+)/.exec(geo)![1], planeId(base, 'Top')],
-    [/<a:LayerID[^>]*><b:ID>(\d+)/.exec(geo)![1], idOf(base, 'Layers\\.Layer')],
-  ];
-  const ids = new Ids(base, stairPgmxXml);
-  let [st, fm, gm, om] = cloneBlocks(ids, src).map((b) => refs.reduce((x, [a, z]) => x.split('>' + a + '<').join('>' + z + '<'), b));
+  const ids = new Ids(base, stairPgmxXml, ...(sawXml ? [sawXml] : []));
+  let [st, fm, gm, om] = cloneBlocks(ids, retarget(blocks(stairPgmxXml, TEST_STEP), stairPgmxXml, base));
   gm = setMembers(ids, gm, pk.geometry);
-  fm = setDepth(setMembers(ids, fm, pk.geometry), lay.plan.housingDepth);
+  fm = keepOrSetDepth(setMembers(ids, fm, pk.geometry), lay.plan.housingDepth);
   om = setTrajectory(ids, om, pk.path);
   const CLR = T + 50;
   om = setDesc(om, 'Approach', ln(pk.start[0], pk.start[1], CLR, 0, 0, -1, CLR - pk.start[2]), CLR - pk.start[2]);
   om = setDesc(om, 'Lift', ln(pk.end[0], pk.end[1], pk.end[2], 0, 0, 1, CLR - pk.end[2]), CLR - pk.end[2]);
-  st = renameStep(st, name, true);
+  const steps = [renameStep(st, name, true)], feats = [fm], geos = [gm], ops = [om];
+  if (sawXml) {
+    const tpl = (side: 'Left' | 'Right') => retarget(blocks(sawXml, SAW_FILE_STEPS[side]), sawXml, base);
+    // both cut lines run from the top edge (Y = W) to the bottom edge; the stringer is on the left of the floor
+    // cut's travel and on the right of the top cut's, so the blade goes Right and Left respectively
+    const [[f0, f1], [t0, t1]] = lay.endCuts;
+    for (const [nm, a, b, side] of [['E015 Saw - Floor cut', f0, f1, 'Right'], ['E015 Saw - Top cut', t0, t1, 'Left']] as const) {
+      const [s2, f2, g2, o2] = endSaw(ids, tpl(side), a, b, side, T);
+      steps.push(renameStep(s2, nm, true)); feats.push(f2); geos.push(g2); ops.push(o2);
+    }
+  }
   const group = `<Executable i:type="a:ExecutableGroup" xmlns:a="${NS_PROJECT}"><Key xmlns="${UTIL}"><ID>${ids.take()}</ID>` +
     `<ObjectType>ScmGroup.XCam.MachiningDataModel.ProjectModule.ExecutableGroup</ObjectType></Key><Name xmlns="${UTIL}">Stringer</Name>` +
-    `<Description/><IsEnabled>true</IsEnabled><Priority>0</Priority><Elements>${st}</Elements></Executable>`;
+    `<Description/><IsEnabled>true</IsEnabled><Priority>0</Priority><Elements>${steps.join('')}</Elements></Executable>`;
   const park = base.indexOf('<Executable i:type="Xn">');
   const at = (tag: string) => base.indexOf(`</${tag}>`);
-  const xml = splice(base, [[park, park, group], [at('Features'), at('Features'), fm], [at('Geometries'), at('Geometries'), gm], [at('Operations'), at('Operations'), om]]);
+  const xml = splice(base, [[park, park, group], [at('Features'), at('Features'), feats.join('')], [at('Geometries'), at('Geometries'), geos.join('')], [at('Operations'), at('Operations'), ops.join('')]]);
   return { xml, L, W, T, layout: lay, pocket: pk };
 }

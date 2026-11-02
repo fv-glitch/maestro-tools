@@ -145,3 +145,34 @@ describe.skipIf(!SF.every(exists))('stringer program (our toolpath)', () => {
       expect(near(pts, c[0], c[1], 8.05), h.kind + h.index).toBe(true); }
   });
 });
+
+const SAWF = 'fixtures/stair-sawcuts.pgmx';
+describe.skipIf(!(SF.every(exists) && exists(SAWF)))('stringer end saw cuts', () => {
+  const [tdr, stair, saw] = [...SF, SAWF].map((f) => getXml(readPgmx(f)));
+  const nums = (s: string) => s.trim().split(/\s+/).map(Number);
+  const descs = (b: string) => [...b.matchAll(/(?:<b:Type>(\w+)<\/b:Type>.*?)?_serializationGeometryDescription>([^<]*)</gs)].map((m) => nums(m[2]));
+  it('3R test stair: both cuts match the ones Shane drew in Maestro (100 run-out, blade on the waste side)', () => {
+    const out = stringerProgram(tdr, stair, TEST_STAIR, undefined, saw);
+    assertSafe(tdr, out.xml);
+    expect(stepList(out.xml).map((x) => x[0])).toEqual(['Stringer', 'E019 16mm - Stringer housings', 'E015 Saw - Floor cut', 'E015 Saw - Top cut', 'Park Right(2)(1)']);
+    for (const [ours, his] of [['E015 Saw - Floor cut', 'Cut with blade'], ['E015 Saw - Top cut', 'Cut with blade(1)']]) {
+      const a = stepParts(out.xml, ours), b = stepParts(saw, his);
+      expect(/SideOfFeature>(\w+)</.exec(a.feature.text)![1]).toBe(/SideOfFeature>(\w+)</.exec(b.feature.text)![1]);
+      expect(/EndDepth>([^<]+)</.exec(a.feature.text)![1]).toBe('42');
+      const [ga, gb] = [descs(a.geometry.text)[0], descs(b.geometry.text)[0]];
+      ga.forEach((v, i) => expect(Math.abs(v - gb[i]), `geo ${ours} ${i}`).toBeLessThan(0.003));
+      const [oa, ob] = [descs(a.operation.text), descs(b.operation.text)];   // approach, trajectory, lift
+      expect(oa).toHaveLength(ob.length);
+      oa.forEach((rec, k) => rec.forEach((v, i) => expect(Math.abs(v - ob[k][i]), `op ${ours} ${k}.${i}`).toBeLessThan(0.003)));
+    }
+  });
+  it('full flight: top cut moves to the top of the 5445 stringer', () => {
+    const out = stringerProgram(tdr, stair, { ...TEST_STAIR, totalRise: 2700 }, undefined, saw);
+    assertSafe(tdr, out.xml);
+    const g = descs(stepParts(out.xml, 'E015 Saw - Top cut').geometry.text)[0];
+    const [[t0]] = [out.layout.endCuts[1]];
+    expect(g[4]).toBeCloseTo(t0[0] - 100 * g[7], 6);   // starts 100 before the top edge along the cut
+    expect(g[5]).toBeCloseTo(290 - 100 * g[8], 6);
+    expect(g[2]).toBeCloseTo(Math.hypot(451.1111111, 290) + 200, 3);
+  });
+});

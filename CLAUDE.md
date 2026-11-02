@@ -76,6 +76,10 @@ so the file format is stable.
   stair: union outline + our path (contour at the tool radius, CW arcs round reflex corners in Maestro's arc form,
   plus an out-and-back along each tread centre line to clear the island where a riser meets a tread). Needs housings
   2..4 tool radii wide. Tested to cut everything Maestro's path cuts on the test stair. CLI: `stair`. UNTESTED on the machine.
+- End cuts: E015 saw clones of Shane's 'Cut with blade' (SideOfFeature Right, floor) / '(1)' (Left, top) in
+  fixtures/stair-sawcuts.pgmx; level cuts at the pitch, 100 run-out past each edge, through 42, Z -0.2. Our output
+  matches his to 0.003. Maestro adds an OperationGenerated plane per saw cut on save (holds a copy of the geometry
+  key - that's where the 'duplicate' IDs in saved saw files come from); not cloned. Top plumb cut not modelled.
 
 ## Renderer
 
