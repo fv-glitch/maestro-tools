@@ -22,34 +22,83 @@
   // ---------- steps tree
   const pendingEnable = (id) => edits.find((e) => e.op === 'enable' && e.step === id);
   const pendingName = (id) => edits.find((e) => e.op === 'rename' && e.step === id);
+  const pendingOf = (id, op) => edits.find((e) => e.op === op && e.step === id);
+  const deletedRows = () => {   // rows hidden by a pending delete (the row itself and everything under it)
+    const out = new Set(); let cut = null;
+    for (const r of cur.tree) {
+      if (cut !== null && r.depth > cut) { out.add(r.id); continue; }
+      cut = null;
+      if (pendingOf(r.id, 'delete')) { out.add(r.id); cut = r.depth; }
+    }
+    return out;
+  };
+  /** what each row offers: groups and Top-face steps move, Top holes change depth */
+  function actions(r) {
+    if (r.locked) return [];
+    const a = [];
+    if (!r.noRename) a.push(['rename', 'Rename']);
+    if (r.type === 'ExecutableGroup' || (r.type === 'MachiningWorkingStep' && r.plane === 'Top')) a.push(['move', 'Move...']);
+    if (r.feature === 'RoundHole' && r.plane === 'Top') a.push(['depth', 'Depth...']);
+    if (r.type === 'ExecutableGroup' || r.type === 'MachiningWorkingStep') a.push(['delete', 'Delete']);
+    return a;
+  }
   function renderTree() {
-    const el = $('#programTree');
+    const el = $('#programTree'); const gone = deletedRows();
     el.innerHTML = cur.tree.map((r) => {
       const en = pendingEnable(r.id); const nm = pendingName(r.id);
-      const on = en ? en.on : r.enabled; const changed = en || nm;
-      const btns = r.locked ? '' : `<button data-act="toggle">${on ? 'Turn off' : 'Turn on'}</button>${r.noRename ? '' : '<button data-act="rename">Rename</button>'}`;
-      return `<div class="tr ${on ? '' : 'off'} ${r.locked ? 'locked' : ''} ${changed ? 'changed' : ''}" data-id="${esc(r.id)}" style="padding-left:${r.depth * 14}px"
-        title="${esc(r.locked ? 'locked: ' + r.locked : r.type)}"><span class="ty">${esc(TYPES[r.type] || r.type)}</span><span class="nm">${esc(nm ? nm.to : r.name)}</span>${btns}</div>`;
+      const on = en ? en.on : r.enabled;
+      const tags = ['move', 'depth'].map((op) => pendingOf(r.id, op)).filter(Boolean)
+        .map((e) => e.op === 'move' ? `moved ${e.dx}, ${e.dy}` : `depth ${e.depth}`).join(', ');
+      const changed = en || nm || tags;
+      const acts = actions(r);
+      const btns = r.locked ? '' : `<button data-act="toggle">${on ? 'Turn off' : 'Turn on'}</button>` +
+        (acts.length ? `<select data-act="menu"><option value="">Change</option>${acts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>` : '');
+      return `<div class="tr ${on ? '' : 'off'} ${r.locked ? 'locked' : ''} ${changed ? 'changed' : ''} ${gone.has(r.id) ? 'gone' : ''}" data-id="${esc(r.id)}" style="padding-left:${r.depth * 14}px"
+        title="${esc(r.locked ? 'locked: ' + r.locked : r.type + (r.feature ? ' / ' + r.feature + ' on ' + r.plane : ''))}"><span class="ty">${esc(TYPES[r.type] || r.type)}</span><span class="nm">${esc(nm ? nm.to : r.name)}${tags ? ` <i class="hint">(${esc(tags)})</i>` : ''}</span>${gone.has(r.id) ? '' : btns}</div>`;
     }).join('') || '<p class="hint">empty workplan</p>';
-    el.querySelectorAll('.tr button').forEach((b) => b.addEventListener('click', () => {
-      const row = b.closest('.tr'); const r = cur.tree.find((x) => x.id === row.dataset.id);
-      if (b.dataset.act === 'toggle') {
-        const en = pendingEnable(r.id);
-        if (en) edits = edits.filter((e) => e !== en);       // back to how the file has it
-        else edits.push({ op: 'enable', step: r.id, on: !r.enabled });
-        render();
-      } else {
-        const nmEl = row.querySelector('.nm'); const old = pendingName(r.id);
-        const inp = document.createElement('input'); inp.value = old ? old.to : r.name; nmEl.replaceWith(inp); inp.focus(); inp.select();
-        const done = (keep) => {
-          const v = inp.value.trim(); edits = edits.filter((e) => e !== old);
-          if (keep && v && v !== r.name) edits.push({ op: 'rename', step: r.id, to: v });
-          render();
-        };
-        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); });
-        inp.addEventListener('blur', () => done(true));
-      }
+    el.querySelectorAll('.tr button[data-act=toggle]').forEach((b) => b.addEventListener('click', () => {
+      const r = cur.tree.find((x) => x.id === b.closest('.tr').dataset.id);
+      const en = pendingEnable(r.id);
+      if (en) edits = edits.filter((e) => e !== en);       // back to how the file has it
+      else edits.push({ op: 'enable', step: r.id, on: !r.enabled });
+      render();
     }));
+    el.querySelectorAll('.tr select[data-act=menu]').forEach((sel) => sel.addEventListener('change', () => {
+      const row = sel.closest('.tr'); const r = cur.tree.find((x) => x.id === row.dataset.id); const act = sel.value; sel.value = '';
+      if (act === 'delete') { edits = edits.filter((e) => e.step !== r.id); edits.push({ op: 'delete', step: r.id }); render(); return; }
+      if (act === 'rename') return renameInline(row, r);
+      inlineForm(row, r, act);
+    }));
+  }
+  function renameInline(row, r) {
+    const nmEl = row.querySelector('.nm'); const old = pendingName(r.id);
+    const inp = document.createElement('input'); inp.value = old ? old.to : r.name; nmEl.replaceWith(inp); inp.focus(); inp.select();
+    const done = (keep) => {
+      const v = inp.value.trim(); edits = edits.filter((e) => e !== old);
+      if (keep && v && v !== r.name) edits.push({ op: 'rename', step: r.id, to: v });
+      render();
+    };
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); });
+    inp.addEventListener('blur', () => done(true));
+  }
+  /** a small form under the row: move dx / dy, or a new hole depth */
+  function inlineForm(row, r, act) {
+    $('#programTree').querySelectorAll('.inl').forEach((x) => x.remove());
+    const old = pendingOf(r.id, act);
+    const f = document.createElement('form'); f.className = 'inl'; f.style.paddingLeft = (r.depth * 14 + 20) + 'px';
+    f.innerHTML = act === 'move'
+      ? `<label>dX <input name="dx" type="number" step="0.01" value="${old ? old.dx : 0}" /></label><label>dY <input name="dy" type="number" step="0.01" value="${old ? old.dy : 0}" /></label><button>OK</button><button type="button" data-x>Cancel</button>`
+      : `<label>Depth <input name="depth" type="number" step="0.1" value="${old ? old.depth : ''}" /></label><button>OK</button><button type="button" data-x>Cancel</button>`;
+    row.after(f); f.querySelector('input').focus();
+    f.querySelector('[data-x]').onclick = () => f.remove();
+    f.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const v = (n) => parseFloat(f.querySelector(`[name=${n}]`).value);
+      edits = edits.filter((e) => e !== old);
+      if (act === 'move') { const dx = v('dx') || 0, dy = v('dy') || 0; if (dx || dy) edits.push({ op: 'move', step: r.id, dx, dy }); }
+      else { const d = v('depth'); if (d > 0) edits.push({ op: 'depth', step: r.id, depth: d }); }
+      render();
+    });
   }
 
   // ---------- edit list
@@ -62,6 +111,10 @@
       case 'saw': return `Saw cut ${e.name ? `'${e.name}' ` : ''}along ${e.axis.toUpperCase()} at ${e.at}`;
       case 'enable': return `Turn ${e.on ? 'on' : 'off'}: ${nameOf(e.step)}`;
       case 'rename': return `Rename: ${nameOf(e.step)} -> ${e.to}`;
+      case 'move': return `Move ${nameOf(e.step)} by ${e.dx} in X, ${e.dy} in Y`;
+      case 'depth': return `Depth ${e.depth}: ${nameOf(e.step)}`;
+      case 'delete': return `Delete ${nameOf(e.step)}`;
+      case 'variable': return `Set ${e.name} = ${e.value}`;
       default: return e.op;
     }
   }
@@ -70,7 +123,21 @@
     $('#editList').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { edits.splice(+b.dataset.i, 1); render(); }));
     $('#previewEdits').disabled = $('#saveEdits').disabled = !edits.length;
   }
-  function render() { renderTree(); renderList(); }
+  function renderVars() {
+    const el = $('#programVars'); const vs = cur.vars || [];
+    el.innerHTML = vs.length ? `<table class="vars">${vs.map((v) => {
+      const pe = edits.find((e) => e.op === 'variable' && e.name === v.name);
+      return `<tr><td>${esc(v.name)}</td><td>${v.formula ? `${esc(v.value)} <span class="hint">= ${esc(v.formula)}</span>`
+        : `<input data-var="${esc(v.name)}" type="number" step="any" value="${esc(pe ? pe.value : v.value)}" class="${pe ? 'changed' : ''}" />`}</td></tr>`;
+    }).join('')}</table>` : '<p class="hint">no variables</p>';
+    el.querySelectorAll('input[data-var]').forEach((inp) => inp.addEventListener('change', () => {
+      const name = inp.dataset.var; const v = cur.vars.find((x) => x.name === name); const n = parseFloat(inp.value);
+      edits = edits.filter((e) => !(e.op === 'variable' && e.name === name));
+      if (Number.isFinite(n) && n !== parseFloat(v.value)) edits.push({ op: 'variable', name, value: n });
+      render();
+    }));
+  }
+  function render() { renderTree(); renderVars(); renderList(); }
 
   // ---------- add-step form
   const form = $('#addStep');
@@ -112,7 +179,7 @@
     try {
       const r = await maestro.saveProgram(cur.path, edits); if (!r) return;
       const html = resultHtml(r, true);
-      load({ path: r.path, name: r.name, model: r.model, tree: r.tree });   // keep editing the new file
+      load({ path: r.path, name: r.name, model: r.model, tree: r.tree, vars: r.vars });   // keep editing the new file
       $('#editResult').innerHTML = `${html}<div class="row"><button id="savedShow">${WEB ? 'Download' : 'Show in folder'}</button><span class="path">${esc(WEB ? r.name + '.pgmx' : r.path)}</span></div>`;
       $('#savedShow').onclick = () => maestro.showInFolder(r.path);
     } catch (err) { showError(err); }

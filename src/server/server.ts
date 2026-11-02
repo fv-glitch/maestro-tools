@@ -14,7 +14,7 @@ import { readPgmx, getXml } from '../engine/archive';
 import { viewModelOf } from '../view/model';
 import { alignDoorJamb } from '../check/alignment';
 import { generate, type Job } from '../ops/generate';
-import { applyEdits, editFile, needsTemplates, programTree, type Edit } from '../ops/edit';
+import { applyEdits, editFile, needsTemplates, programTree, programVars, type Edit } from '../ops/edit';
 import { loadTemplates } from '../ops/cabinet';
 import { viewModel } from '../view/model';
 
@@ -157,17 +157,17 @@ const server = createServer(async (req, res) => {
         for (const k of ['itm', 'tdr', 'apex'] as const) if (!m[k] || !existsSync(m[k]!)) throw new Error('Upload the ITM, TestingDoorReal and APEX Passage template programs in Setup first');
         return loadTemplates(getXml(readPgmx(m.itm!)), getXml(readPgmx(m.tdr!)), getXml(readPgmx(m.apex!)));
       };
-      if (p === '/api/program/open') return send(res, 200, { path: q.id, name: stem, model: viewModel(x, stem, tools), tree: programTree(x) });
+      if (p === '/api/program/open') return send(res, 200, { path: q.id, name: stem, model: viewModel(x, stem, tools), tree: programTree(x), vars: programVars(x) });
       if (p === '/api/program/preview') {
         const r = applyEdits(x, edits, tp());
-        return send(res, 200, { log: r.log, notes: r.notes, model: viewModel(r.xml, stem + ' (preview - not saved)', tools), tree: programTree(r.xml) });
+        return send(res, 200, { log: r.log, notes: r.notes, model: viewModel(r.xml, stem + ' (preview - not saved)', tools), tree: programTree(r.xml), vars: programVars(r.xml) });
       }
       if (p === '/api/program/save') {
         const id = randomUUID(); const outDir = path.join(DATA, 'out', id); mkdirSync(outDir);
         const name = safeName(stem.replace(/ edited(\(\d+\))?$/, '') + ' edited.pgmx'); const out = path.join(outDir, name);
         const r = editFile(src, edits, out, tp()); const nx = getXml(readPgmx(out)); const nstem = path.basename(out, '.pgmx');
         const link = `/api/download/${id}/${encodeURIComponent(name)}`;
-        return send(res, 200, { path: link, name: nstem, log: r.log, notes: r.notes, model: viewModel(nx, nstem, tools), tree: programTree(nx) });
+        return send(res, 200, { path: link, name: nstem, log: r.log, notes: r.notes, model: viewModel(nx, nstem, tools), tree: programTree(nx), vars: programVars(nx) });
       }
     }
     if (p === '/api/health') return send(res, 200, { ok: true });
