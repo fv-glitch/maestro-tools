@@ -4,7 +4,7 @@ import { netDouble } from '../src/engine/variables';
 
 const v = { doorlength: 1980, footclearance: 28, shiftcut: 10, Lockposition: 990, CustomHinges: 0, dx1: 1980, CustomHingeFoot: 1750,
   MilanoLarge: 1, LH: 1, RH: 0, Mitre: 0, dz2: 0.1, StrikeLen: 55.61, StrikeWid: 41.2, JambThickness: 19 };
-describe('Maestro formulas from the owner\'s programs', () => {
+describe('Maestro formulas from real programs', () => {
   const cases: [string, number][] = [
     ['doorlength+footclearance+3', 2011], ['Lockposition+footclearance+shiftcut', 1028], ['JambThickness-25', -6],
     ['150.000+If(CustomHinges=1;-150+(dx1-CustomHingeFoot-89.2);0)', 150], ['-150-89.2+dx1', 1740.8],

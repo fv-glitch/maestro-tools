@@ -1,5 +1,5 @@
 /**
- * Evaluator for Maestro's expression language, as used in the owner's programs and macros, e.g.
+ * Evaluator for Maestro's expression language, as used in real programs and macros, e.g.
  *   doorlength+footclearance+3
  *   150.000+If(CustomHinges=1;-150+(dx1-CustomHingeFoot-89.2);0)
  *   MilanoLarge=1 And LH=1 Or MilanoLarge=3

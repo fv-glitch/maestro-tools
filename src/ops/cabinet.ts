@@ -1,7 +1,7 @@
 /**
  * Panel programs built from scratch for flat-pack / carcass work (first job: the window wall library).
  *
- * Nothing here invents Maestro structure. A blank program is the owner's TestingDoorReal with every
+ * Nothing here invents Maestro structure. A blank program is the TestingDoorReal master with every
  * machining step, subprogram, feature, geometry, operation, variable and expression removed (the
  * workpiece, planes, layers, setup and park move stay exactly as Maestro wrote them). Steps are
  * clones of proven templates:

@@ -1,6 +1,6 @@
 # Maestro Tools
 
-Standalone CNC/CAM tools for the SCM Maestro programs.
+Standalone CNC/CAM tools for SCM Maestro programs.
 Desktop app: Electron + TypeScript. Feed it job info, get `.pgmx` programs out.
 
 ## Panel jobs (carcass / flat-pack)

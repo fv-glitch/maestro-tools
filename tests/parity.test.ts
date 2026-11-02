@@ -1,7 +1,7 @@
 /**
  * Parity: replay the real Oct-2026 builds and require byte-identical program XML to what the
  * Python engine produced (files that were opened in Maestro and run on the machine).
- * Fixtures are the owner's real programs and are NOT in git - put them in ./fixtures to run these.
+ * Fixtures are real shop programs in ./fixtures; these tests skip when one is missing.
  */
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
