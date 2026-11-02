@@ -64,6 +64,23 @@ so the file format is stable.
 - Housing walls follow BoardT (expressions); stored toolpaths are for BoardT = 18 (18.2 wide).
 - UNTESTED in Maestro (Nov 2026): first panel + saw programs need opening and saving on the Maestro PC.
 
+## Stairs (src/ops/stair.ts) - groundwork only
+
+- Maths + housed-stringer layout, no .pgmx output yet. Limits: NZBC D1/AS1 main private stair (rise <= 190,
+  going >= 280, pitch <= 37, nosing <= 25, 4 m per flight); default going from 2R+G = 630 (assumption).
+- Housings run at the pitch. Template: fixtures/stair-test.pgmx (the owner, from test-stringer-3R-v2.dxf), step
+  'Outline Pocket' = all housings as ONE E019 ClosedPocket, 12 deep. Joints overlap by the tool radius (8) and end
+  risers run past the end cuts so no corner radius lands where a board seats.
+- src/ops/stairProgram.ts clones it onto the emptied TDR (setup + park; the owner sets bars/cups by hand at the machine).
+  testStringerProgram = Maestro's own toolpath (3R test only; loaded on the M100 2026-11-02). stringerProgram = any
+  stair: union outline + our path (contour at the tool radius, CW arcs round reflex corners in Maestro's arc form,
+  plus an out-and-back along each tread centre line to clear the island where a riser meets a tread). Needs housings
+  2..4 tool radii wide. Tested to cut everything Maestro's path cuts on the test stair. CLI: `stair`. UNTESTED on the machine.
+- End cuts: E015 saw clones of the owner's 'Cut with blade' (SideOfFeature Right, floor) / '(1)' (Left, top) in
+  fixtures/stair-sawcuts.pgmx; level cuts at the pitch, 100 run-out past each edge, through 42, Z -0.2. Our output
+  matches his to 0.003. Maestro adds an OperationGenerated plane per saw cut on save (holds a copy of the geometry
+  key - that's where the 'duplicate' IDs in saved saw files come from); not cloned. Top plumb cut not modelled.
+
 ## Renderer
 
 - Plain scripts, no ES modules (Chromium blocks module scripts from file://, which is how Electron
