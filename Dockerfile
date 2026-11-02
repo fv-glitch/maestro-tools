@@ -4,7 +4,6 @@ WORKDIR /app
 COPY package.json package-lock.json tsconfig.json ./
 COPY scripts ./scripts
 COPY src ./src
-COPY fixtures/tdr-latest.pgmx fixtures/stair-test.pgmx fixtures/stair-sawcuts.pgmx ./fixtures/
 RUN ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci --ignore-scripts && npm run build
 
 FROM node:22-alpine

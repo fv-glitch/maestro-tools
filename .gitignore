@@ -4,3 +4,4 @@ out/
 *.xsp
 release/
 data/
+fixtures/

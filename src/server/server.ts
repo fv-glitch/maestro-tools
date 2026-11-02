@@ -3,7 +3,7 @@
  * upload and download. Masters are uploaded once and kept in DATA_DIR/masters, never modified.
  *
  *   PORT        default 8080
- *   DATA_DIR    default ./data   (masters/, uploads/, out/, settings.json)
+ *   DATA_DIR    default ./data   (masters/, uploads/, out/, settings.json, templates/ = the 3 stair templates)
  *   MT_PASSWORD optional - require HTTP basic auth (any user name, this password)
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -14,7 +14,7 @@ import { readPgmx, getXml } from '../engine/archive';
 import { viewModelOf } from '../view/model';
 import { alignDoorJamb } from '../check/alignment';
 import { generate, type Job } from '../ops/generate';
-import { stairJob, type StairForm } from '../ops/stairJob';
+import { stairJob, templatesDir, type StairForm } from '../ops/stairJob';
 
 const PORT = Number(process.env.PORT ?? 8080);
 const DATA = path.resolve(process.env.DATA_DIR ?? 'data');
@@ -135,7 +135,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && p === '/api/stair') {
       const form = await json<StairForm>(req);
       const id = randomUUID(); const outDir = path.join(DATA, 'out', id); mkdirSync(outDir);
-      const r = stairJob(form, outDir);
+      const r = stairJob(form, outDir, templatesDir([path.join(DATA, 'templates')]));
       if (!r.file) rmSync(outDir, { recursive: true, force: true });
       return send(res, 200, { ...r, file: r.file ? `/api/download/${id}/${encodeURIComponent(path.basename(r.file))}` : undefined });
     }

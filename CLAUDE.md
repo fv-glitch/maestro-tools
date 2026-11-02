@@ -81,7 +81,8 @@ so the file format is stable.
   matches his to 0.003. Maestro adds an OperationGenerated plane per saw cut on save (holds a copy of the geometry
   key - that's where the 'duplicate' IDs in saved saw files come from); not cloned. Top plumb cut not modelled.
 - App + web: Stairs tab -> src/ops/stairJob.ts (IPC 'stair:generate' -> <outDir>/Stairs; web POST /api/stair -> download).
-  Templates ship in dist/templates (copied from fixtures/ by scripts/copy-renderer.mjs; Dockerfile copies those 3 fixtures).
+  Templates (tdr-latest, stair-test, stair-sawcuts .pgmx) are NOT in git: MT_TEMPLATES, web DATA_DIR/templates, desktop
+  <userData>/templates, else dist/templates (copied from a local fixtures/ at build if present).
 
 ## Renderer
 

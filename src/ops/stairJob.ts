@@ -1,7 +1,8 @@
 /**
  * One stair job for the app and the web server: plan + checks, and (when the plan passes) a stringer program
- * written to outDir. Templates (TestingDoorReal, the owner's one-pocket stair test, his angled saw cuts) ship with
- * the app in dist/templates (copied from fixtures/ by scripts/copy-renderer.mjs).
+ * written to outDir. The three templates (TestingDoorReal, the one-pocket stair test, the angled saw cuts) are the
+ * owner's programs and are not in git. They are looked for, in order, in: MT_TEMPLATES, the caller's extra folders
+ * (web: DATA_DIR/templates; desktop: <userData>/templates), then dist/templates (copied from a local fixtures/ at build).
  */
 import { existsSync } from 'node:fs';
 import * as path from 'node:path';
@@ -21,10 +22,12 @@ export interface StairResult {
 
 export const TEMPLATE_FILES = { base: 'tdr-latest.pgmx', pocket: 'stair-test.pgmx', saw: 'stair-sawcuts.pgmx' };
 
-/** dist/templates next to the compiled ops/ folder, or MT_TEMPLATES. */
-export function templatesDir(): string {
-  const d = process.env.MT_TEMPLATES ?? path.join(__dirname, '..', 'templates');
-  for (const f of Object.values(TEMPLATE_FILES)) if (!existsSync(path.join(d, f))) throw new Error(`stair template missing: ${path.join(d, f)}`);
+/** First folder holding all three templates; the error names the files and every folder tried. */
+export function templatesDir(extra: string[] = []): string {
+  const tried = [process.env.MT_TEMPLATES, ...extra, path.join(__dirname, '..', 'templates')].filter((d): d is string => !!d);
+  const files = Object.values(TEMPLATE_FILES);
+  const d = tried.find((x) => files.every((f) => existsSync(path.join(x, f))));
+  if (!d) throw new Error(`Stair templates not found. Put ${files.join(', ')} in one of: ${tried.join(' ; ')}`);
   return d;
 }
 
