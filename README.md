@@ -63,7 +63,9 @@ latch set, groups, spindle helix, start point, jamb strike) and requires the out
 
 The fixtures in `./fixtures/` are real shop programs: the before/after files of each proven build,
 the APEX Passage door + LH/RH APEX Strike jamb masters, the show door (template source) and
-TestingDoorReal. They are left out of the Docker image and the installers.
+TestingDoorReal. They are **not in git** (`fixtures/` is ignored) and are left out of the Docker image
+and the installers. Copy them into `./fixtures/` to run the suites that need them; without them those
+suites are skipped, not failed.
 
 ## Layout
 

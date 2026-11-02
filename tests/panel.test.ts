@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync } from 'node:fs';
 import { readPgmx, getXml, getEntryText } from '../src/engine/archive';
 import { assertSafe } from '../src/engine/validate';
 import { stepList } from '../src/engine/pgmx';
@@ -7,9 +6,9 @@ import { readVariables } from '../src/engine/variables';
 import { loadTemplates, blankProgram } from '../src/ops/cabinet';
 import { partPrograms, notchRects, pocketRects, sawPrograms, type Part, type PlanJSON } from '../src/ops/panelJob';
 import { viewModel } from '../src/view/model';
+import { describeWithFixtures } from './needs';
 
 const F = ['tdr-latest', 'template-final', 'apex-passage'].map((f) => `fixtures/${f}.pgmx`);
-const have = F.every(existsSync);
 const xml = (f: string) => getXml(readPgmx(f));
 
 // a side with the comb pocket (rebate + housings), a shelf with corner notches, screws and edge dowels
@@ -30,7 +29,7 @@ describe('panel geometry', () => {
   });
 });
 
-describe.skipIf(!have)('panel programs', () => {
+describeWithFixtures(F)('panel programs', () => {
   const [tdr, showDoor, apex] = F.map(xml); const tp = loadTemplates(showDoor, tdr, apex);
   const tools = getEntryText(readPgmx(F[0]), 'def.tlgx'); const view = (x: string) => viewModel(x, '', tools);
   it('empties TestingDoorReal to a bare workpiece', () => {
