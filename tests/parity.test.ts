@@ -25,19 +25,19 @@ function same(got: string, want: string, before: string) {
 describe.skipIf(!has('door-dh2', 'door-dh3'))('DummyHandleX parameter', () => {
   it('matches dh3', () => { const t = xml('door-dh2'); same(addDummyHandleParameter(t), xml('door-dh3'), t); });
 });
-describe.skipIf(!has('door-1430', 'door-lt1', 'itm-final'))('latch handle set', () => {
+describe.skipIf(!has('door-1430', 'door-lt1', 'template-final'))('latch handle set', () => {
   it('matches lt1', () => {
     const a = readPgmx(fx('door-1430')); const t = getXml(a);
-    same(latchHandleSet(t, xml('itm-final'), getEntryText(a, 'def.tlgx')), xml('door-lt1'), t);
+    same(latchHandleSet(t, xml('template-final'), getEntryText(a, 'def.tlgx')), xml('door-lt1'), t);
   });
 });
 describe.skipIf(!has('door-lt1', 'door-gp1'))('groups', () => {
   it('matches gp1', () => { const t = xml('door-lt1'); same(groupSteps(t, HANDLE_GROUPS), xml('door-gp1'), t); });
 });
-describe.skipIf(!has('door-gp1', 'door-hx1', 'itm-final'))('spindle helix', () => {
+describe.skipIf(!has('door-gp1', 'door-hx1', 'template-final'))('spindle helix', () => {
   it('matches hx1', () => {
     const t = xml('door-gp1');
-    same(spindleHelix(t, xml('itm-final'), ['E019 16mm - Latch spindle hole', 'E019 16mm - Latch spindle hole Other Side']), xml('door-hx1'), t);
+    same(spindleHelix(t, xml('template-final'), ['E019 16mm - Latch spindle hole', 'E019 16mm - Latch spindle hole Other Side']), xml('door-hx1'), t);
   });
 });
 describe.skipIf(!has('door-hx1', 'door-sp1'))('profile start point', () => {

@@ -2,7 +2,7 @@
  * Stairs, first step: the maths for a straight flight and the housing layout on a closed (housed) stringer.
  *
  * Pure geometry. Nothing here writes a .pgmx yet: the housings run at the pitch angle and the only pocket
- * template we have (ITM rect pocket) is axis-aligned, so the program side waits for a proven angled
+ * template we have (show-door rect pocket) is axis-aligned, so the program side waits for a proven angled
  * pocket to clone (CLAUDE.md rule 5).
  *
  * Limits are NZBC D1/AS1 for main private stairways (per BRANZ "External stairs for houses"):

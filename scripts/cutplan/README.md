@@ -8,7 +8,7 @@ turned (no grain). Strips narrower than 100 mm come off the sheet as one block f
 ```
 pip install "pulp==2.9.0" --break-system-packages    # CBC solver bundled
 python3 ilp.py parts.json                 # -> plan.json (optimal sheets, then fewest strips)
-node ../../dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --itm "Beta-Optimised - Final.pgmx" --apex "APEX Passage.pgmx"
+node ../../dist/cli.js panels parts.json plan.json out --base TestingDoorReal.pgmx --template "Beta-Optimised - Final.pgmx" --apex "APEX Passage.pgmx"
 python3 runsheet.py plan.json out/index.json parts.json out/RunSheet.html
 ```
 

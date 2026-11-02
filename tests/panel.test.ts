@@ -8,7 +8,7 @@ import { loadTemplates, blankProgram } from '../src/ops/cabinet';
 import { partPrograms, notchRects, pocketRects, sawPrograms, type Part, type PlanJSON } from '../src/ops/panelJob';
 import { viewModel } from '../src/view/model';
 
-const F = ['tdr-latest', 'itm-final', 'apex-passage'].map((f) => `fixtures/${f}.pgmx`);
+const F = ['tdr-latest', 'template-final', 'apex-passage'].map((f) => `fixtures/${f}.pgmx`);
 const have = F.every(existsSync);
 const xml = (f: string) => getXml(readPgmx(f));
 
@@ -31,7 +31,7 @@ describe('panel geometry', () => {
 });
 
 describe.skipIf(!have)('panel programs', () => {
-  const [tdr, itm, apex] = F.map(xml); const tp = loadTemplates(itm, tdr, apex);
+  const [tdr, showDoor, apex] = F.map(xml); const tp = loadTemplates(showDoor, tdr, apex);
   const tools = getEntryText(readPgmx(F[0]), 'def.tlgx'); const view = (x: string) => viewModel(x, '', tools);
   it('empties TestingDoorReal to a bare workpiece', () => {
     const b = blankProgram(tdr, 500, 300, 18, [['BoardT', 18]]);

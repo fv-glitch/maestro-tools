@@ -23,7 +23,7 @@ function simExtent(m: ViewModel, s: ViewModel['steps'][number]) {
 
 describe.skipIf(!have)('cut size', () => {
   it('reads tool widths from def.tlgx (saw = blade thickness)', () => {
-    const t = readTools(getEntryText(readPgmx('fixtures/itm-final.pgmx'), 'def.tlgx'));
+    const t = readTools(getEntryText(readPgmx('fixtures/template-final.pgmx'), 'def.tlgx'));
     expect(t.E019).toMatchObject({ diameter: 16, width: 16, saw: false });
     expect(t.E017.width).toBe(3);
     expect(t.E015).toMatchObject({ diameter: 249, width: 3.15, saw: true });

@@ -60,7 +60,7 @@ ul li{{margin:3px 0}}
 <h2>Check before the first run</h2>
 <ul>
 <li><b>Pods:</b> keep every saw line and every notch corner clear of pods. Saw cuts go 0.2 below the panel, notches 18.2 (through).</li>
-<li><b>Untested in Maestro:</b> open one part program and one saw program first, check the simulation, and save. Programs were built from your proven steps (ITM E016 pocket, TDR drills, APEX hinge boring and saw cuts), but these exact files have not been opened in Maestro yet.</li>
+<li><b>Untested in Maestro:</b> open one part program and one saw program first, check the simulation, and save. Programs were built from your proven steps (show-door E016 pocket, TDR drills, APEX hinge boring and saw cuts), but these exact files have not been opened in Maestro yet.</li>
 <li><b>BoardT</b> (each part program) is the measured board thickness; housings are cut BoardT + 0.2 wide (18.2 at the default 18). Set it in Maestro before running.</li>
 <li><b>Narrow parts with edge dowels</b> ({", ".join(narrow_machined)}): 60 wide, too narrow for pods. Their programs are there, but they need a jig or clamping, or drill those holes by hand.</li>
 <li><b>Notch corners</b> keep R4 from the 8 mm cutter (the package allowed for R5), and housing ends stop with R4.</li>

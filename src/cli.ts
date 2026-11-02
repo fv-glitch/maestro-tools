@@ -6,7 +6,7 @@
  *   steps <file.pgmx>                               enabled machining: macro, plane, depth, extents
  *   safe <file.pgmx>                                file-health checks Maestro cares about
  *   generate <job.json> <masters.json> <outDir> [--height-hand LH|RH]
- *   panels <parts.json> <plan.json|-> <outDir> --base <TestingDoorReal.pgmx> --itm <ITM.pgmx> --apex <APEX Passage.pgmx>
+ *   panels <parts.json> <plan.json|-> <outDir> --base <TestingDoorReal.pgmx> --template <Beta-Optimised - Final.pgmx> (old name: --itm) --apex <APEX Passage.pgmx>
  *   stair <out.pgmx> --base <TestingDoorReal.pgmx> --template <stair-test.pgmx> [--saw <stair-sawcuts.pgmx>] --rise 2700 [--tread 32 --riser 18 --width 290 --thick 42 --going --risers --nosing]
  */
 import { readPgmx, getXml } from './engine/archive';
@@ -43,7 +43,7 @@ try {
     console.log(formatReport(g.alignment));
   } else if (cmd === 'panels') {
     const baseA = readPgmx(flag('--base')!); const base = getXml(baseA);
-    const tp = loadTemplates(xml(flag('--itm')!), base, xml(flag('--apex')!));
+    const tp = loadTemplates(xml((flag('--template') ?? flag('--itm'))!), base, xml(flag('--apex')!));
     const parts = (JSON.parse(readFileSync(args[0], 'utf8')) as { parts: Part[] }).parts;
     const plan = args[1] !== '-' ? JSON.parse(readFileSync(args[1], 'utf8')) as PlanJSON : undefined;
     const out = args[2]; const index: Record<string, unknown>[] = [];
