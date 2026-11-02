@@ -64,6 +64,13 @@ so the file format is stable.
 - Housing walls follow BoardT (expressions); stored toolpaths are for BoardT = 18 (18.2 wide).
 - UNTESTED in Maestro (Nov 2026): first panel + saw programs need opening and saving on scm-pc.
 
+## Stairs (src/ops/stair.ts) - groundwork only
+
+- Maths + housed-stringer layout, no .pgmx output yet. Limits: NZBC D1/AS1 main private stair (rise <= 190,
+  going >= 280, pitch <= 37, nosing <= 25, 4 m per flight); default going from 2R+G = 630 (assumption).
+- Housings run at the pitch; the only pocket template (ITM rect) is axis-aligned. Program output waits for a
+  proven angled pocket (one housing drawn in Maestro) to clone. Do not rotate the rect template by hand.
+
 ## Renderer
 
 - Plain scripts, no ES modules (Chromium blocks module scripts from file://, which is how Electron
