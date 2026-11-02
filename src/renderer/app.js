@@ -95,7 +95,7 @@ $('#stair').addEventListener('submit', async (e) => {
       ${r.problems.length ? `<ul>${r.problems.map((x) => `<li class="out">${esc(x)}</li>`).join('')}</ul>` : ''}
       ${r.notes.length ? `<ul>${r.notes.map((x) => `<li class="hint">${esc(x)}</li>`).join('')}</ul>` : ''}
       ${r.file ? `<div class="row"><button id="stairFile">${WEB ? 'Download' : 'Show file'}</button><button id="stairView">Open in viewer</button><span class="path">${esc(fileName(r.file))}</span></div>` : ''}
-      ${s.length > 3000 ? '<p class="hint">Long stringer: check it fits the M100 table.</p>' : ''}</div>`;
+      ${s.length > 3000 ? '<p class="hint">Long stringer: check it fits the machine table.</p>' : ''}</div>`;
     if (r.file) {
       $('#stairFile').onclick = () => maestro.showInFolder(r.file);
       $('#stairView').onclick = () => { document.querySelector('nav button[data-tab=view]').click(); window.mtViewer.show(r.view); };

@@ -177,17 +177,17 @@ describeWithFixtures([...SF, SAWF])('stringer end saw cuts', () => {
   });
 });
 
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as pathMod from 'node:path';
 import { stairJob } from '../src/ops/stairJob';
-describe.skipIf(!(SF.every(exists) && exists(SAWF)))('stair job (app / web)', () => {
+describeWithFixtures([...SF, SAWF])('stair job (app / web)', () => {
   it('writes a viewable program, and refuses a stair that breaks the limits', () => {
     const dir = mkdtempSync(pathMod.join(tmpdir(), 'stair-'));
     try {
       const r = stairJob({ totalRise: 2700, treadT: 32, riserT: 18, stringerW: 290, stringerT: 42, nosing: 20, name: 'S 15' }, dir, 'fixtures');
       expect(r.ok).toBe(true); expect(r.plan.risers).toBe(15); expect(r.stringer.length).toBe(5445);
-      expect(exists(r.file!)).toBe(true);
+      expect(existsSync(r.file!)).toBe(true);
       expect(r.view!.steps.map((s) => s.name)).toEqual(['E019 16mm - Stringer housings', 'E015 Saw - Floor cut', 'E015 Saw - Top cut']);
       const bad = stairJob({ totalRise: 2700, treadT: 32, riserT: 18, stringerW: 290, stringerT: 42, risers: 12, going: 240 }, dir, 'fixtures');
       expect(bad.ok).toBe(false); expect(bad.file).toBeUndefined(); expect(bad.problems.join()).toMatch(/rise 225\.0 > 190/);
