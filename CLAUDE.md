@@ -68,8 +68,11 @@ so the file format is stable.
 
 - Maths + housed-stringer layout, no .pgmx output yet. Limits: NZBC D1/AS1 main private stair (rise <= 190,
   going >= 280, pitch <= 37, nosing <= 25, 4 m per flight); default going from 2R+G = 630 (assumption).
-- Housings run at the pitch; the only pocket template (ITM rect) is axis-aligned. Program output waits for a
-  proven angled pocket (one housing drawn in Maestro) to clone. Do not rotate the rect template by hand.
+- Housings run at the pitch. Template: fixtures/stair-test.pgmx (Shane, from test-stringer-3R-v2.dxf), step
+  'Outline Pocket' = all housings as ONE E019 ClosedPocket, 12 deep. Joints overlap by the tool radius (8) and end
+  risers run past the end cuts so no corner radius lands where a board seats.
+- src/ops/stairProgram.ts clones it onto the emptied TDR (setup + park; Shane sets bars/cups by hand at the machine).
+  No polygon-pocket toolpath generator yet, so only the 540-rise 3R test stair can be written. Do not rotate the rect template by hand.
 
 ## Renderer
 
