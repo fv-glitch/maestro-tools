@@ -5,7 +5,7 @@
  *
  * They double as worked examples of the building blocks:
  *   addDummyHandleParameter  - project variable + point/circle expressions
- *   latchHandleSet           - cloning ITM templates across files, helix bore, faceplate pocket/profile, drills, Other Side copies
+ *   latchHandleSet           - cloning show-door templates across files, helix bore, faceplate pocket/profile, drills, Other Side copies
  *   groupSteps               - wrapping steps in ExecutableGroups
  *   spindleHelix             - copying a proven helix toolpath to a new centre/depth
  *   cornersStartPoint        - profile start-point setting
@@ -48,7 +48,7 @@ export function addDummyHandleParameter(t: string): string {
 }
 
 // ---------------------------------------------------------------- QuickFix privacy latch set (1430 -> lt1)
-export function latchHandleSet(t: string, itm: string, toolLib: string): string {
+export function latchHandleSet(t: string, showDoor: string, toolLib: string): string {
   const VAR = 'LatchHandleX', XH = 990.0;
   const DX = num(t, 'dx1'), DY = num(t, 'dy1'), DZ = num(t, 'dz1'); const TOP = DZ, CLR = TOP + 50;
   const YH = DY - 60;
@@ -57,7 +57,7 @@ export function latchHandleSet(t: string, itm: string, toolLib: string): string 
   const BORE_D = 85.0, HALF = 20.0, ZC = DZ / 2;
   const E024 = /<(?:\w+:)?ID>(\d+)<\/(?:\w+:)?ID><(?:\w+:)?ObjectType>ScmGroup\.XCam\.ToolDataModel\.Tool\.CuttingTool<\/(?:\w+:)?ObjectType>(?:(?!<\/Key>).){0,300}?<(?:\w+:)?Name>E024</s.exec(toolLib)?.[1]
     ?? [...toolLib.slice(0, toolLib.indexOf('>E024<')).matchAll(/<(?:\w+:)?ID>(\d+)<\//g)].pop()![1];
-  const ids = new Ids(t, itm);
+  const ids = new Ids(t, showDoor);
   const steps: string[] = [], feats: string[] = [], geos: string[] = [], ops: string[] = [];
   const add = (st: string, fs: string[], gs: string[], os: string[]) => { steps.push(st); feats.push(...fs); geos.push(...gs); ops.push(...os); };
   const ex = new Expressions(t, ids);
@@ -66,7 +66,7 @@ export function latchHandleSet(t: string, itm: string, toolLib: string): string 
     if (elem === undefined) ex.prop(prop, g, o, value); else ex.element(elem, prop, g, o, value);
   };
   const spindle = (name: string, x: number, y: number, en: boolean) => {
-    let [st, fm, gm, om] = cloneBlocks(ids, blocks(itm, 'E019 16mm - Pocket(4)-AlboPassage(2)'));
+    let [st, fm, gm, om] = cloneBlocks(ids, blocks(showDoor, 'E019 16mm - Pocket(4)-AlboPassage(2)'));
     const rad = 12.5, rr = rad - 8, circ = circleRecord(x, y, rad);
     gm = setGeoName(setGeoDesc(gm, circ), name.split(' - ')[1].replace(/ /g, ''));
     fm = setDepth(setMembers(ids, fm, circleBoundary(circ)), HALF);
@@ -80,7 +80,7 @@ export function latchHandleSet(t: string, itm: string, toolLib: string): string 
     add(renameStep(st, name, en), [fm], [gm], [om]); return gm;
   };
   const drill = (name: string, x: number, y: number, d: number, en: boolean) => {
-    let [st, fm, gm, om] = cloneBlocks(ids, blocks(itm, 'E022 3mm Drill - Boring(1)-AlboPassageScrews(1)'));
+    let [st, fm, gm, om] = cloneBlocks(ids, blocks(showDoor, 'E022 3mm Drill - Boring(1)-AlboPassageScrews(1)'));
     gm = gm.replace(/(<a:_x>)[^<]*(<\/a:_x><a:_y>)[^<]*(<\/a:_y>)/, (_m, a, b, c) => a + r(x) + b + r(y) + c);
     gm = setGeoName(gm, name.split(' - ')[1].replace(/ /g, ''));
     fm = setDepth(fm, d).replace(/(<a:Diameter>)[^<]*(<)/, (_m, a, b) => a + '8' + b);
@@ -100,7 +100,7 @@ export function latchHandleSet(t: string, itm: string, toolLib: string): string 
   }
   // Back edge: barrel bore, cloned from the Futura latch hole, helix truncated to depth
   {
-    let [st, fm, gm, om] = cloneBlocks(ids, blocks(itm, 'E019 16mm - Pocket(8)-FuturaLatchHole'));
+    let [st, fm, gm, om] = cloneBlocks(ids, blocks(showDoor, 'E019 16mm - Pocket(8)-FuturaLatchHole'));
     const XP = DX - XH;
     gm = setGeoName(setGeoDesc(gm, `2 ${r(XP)} ${r(ZC)} 0 -0 0 1 0 -1 0 1 0 0 12.5\n`), 'LatchBarrelBore'); fm = setDepth(fm, BORE_D);
     const arcs = [.../<b:Type>TrajectoryPath<\/b:Type>.*?<\/b:Toolpath>/s.exec(om)![0].matchAll(/string>([^<]+)</g)].map((m) => m[1]);
@@ -113,7 +113,7 @@ export function latchHandleSet(t: string, itm: string, toolLib: string): string 
   }
   // Back edge: faceplate pocket (8mm) + 3mm corner pass sharing one outline
   {
-    const b1 = blocks(itm, 'E016 8mm - Pocket(5)-AlboLatch(1)'), b2 = blocks(itm, 'E017 3mm - Routing(11)-AlboLatch(1)');
+    const b1 = blocks(showDoor, 'E016 8mm - Pocket(5)-AlboLatch(1)'), b2 = blocks(showDoor, 'E017 3mm - Routing(11)-AlboLatch(1)');
     if (b1[2] !== b2[2]) throw new Error('faceplate templates no longer share geometry');
     let [st1, fm1, gm, om1, st2, fm2, om2] = cloneBlocks(ids, [b1[0], b1[1], b1[2], b1[3], b2[0], b2[1], b2[3]]);
     const XP = DX - XH;
@@ -195,9 +195,9 @@ export const HANDLE_GROUPS: [string, (n: string) => boolean][] = [
 ];
 
 // ---------------------------------------------------------------- spindle helix (gp1 -> hx1)
-export function spindleHelix(t: string, itm: string, stepNames: string[]): string {
-  const tarcs = trajectoryRecords(blocks(itm, 'E019 16mm - Pocket(4)-AlboPassage(2)')[3]);
-  if (tarcs.length !== 40) throw new Error('unexpected ITM helix');
+export function spindleHelix(t: string, showDoor: string, stepNames: string[]): string {
+  const tarcs = trajectoryRecords(blocks(showDoor, 'E019 16mm - Pocket(4)-AlboPassage(2)')[3]);
+  if (tarcs.length !== 40) throw new Error('unexpected show-door helix');
   const TOP = 38.0, CLR = TOP + 50;
   const ids = new Ids(t);
   const edits: [number, number, string][] = [];
