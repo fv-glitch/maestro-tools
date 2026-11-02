@@ -5,6 +5,7 @@ import { generate, type Job } from '../ops/generate';
 import { alignDoorJamb } from '../check/alignment';
 import { readPgmx, getXml } from '../engine/archive';
 import { viewModelOf } from '../view/model';
+import { stairJob, templatesDir, type StairForm } from '../ops/stairJob';
 
 interface Settings { door: string; jambLH: string; jambRH: string; outDir: string; heightHand: 'LH' | 'RH' }
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
@@ -43,6 +44,10 @@ ipcMain.handle('view:open', async () => {
   const r = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Maestro program', extensions: ['pgmx'] }] });
   if (r.canceled) return undefined;
   return viewModelOf(readPgmx(r.filePaths[0]), path.basename(r.filePaths[0], '.pgmx'));
+});
+ipcMain.handle('stair:generate', (_e, form: StairForm) => {
+  const dir = path.join(loadSettings().outDir, 'Stairs'); mkdirSync(dir, { recursive: true });
+  return stairJob(form, dir, templatesDir([path.join(app.getPath('userData'), 'templates')]));
 });
 ipcMain.handle('shell:show', (_e, p: string) => shell.showItemInFolder(p));
 

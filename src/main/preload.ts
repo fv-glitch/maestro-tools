@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('maestro', {
   generate: (job: unknown) => ipcRenderer.invoke('job:generate', job),
   check: (door: string, jamb: string, doorX0: string, handleHeight?: number) => ipcRenderer.invoke('job:check', door, jamb, doorX0, handleHeight),
   openView: () => ipcRenderer.invoke('view:open'),
+  stair: (form: unknown) => ipcRenderer.invoke('stair:generate', form),
   showInFolder: (p: string) => ipcRenderer.invoke('shell:show', p),
 });

@@ -78,4 +78,29 @@ $('#runCheck').onclick = async () => {
   catch (err) { $('#checkResult').innerHTML = `<div class="panel"><p class="status error">${esc(err.message)}</p></div>`; }
 };
 
+// ---------- stairs
+$('#stair').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target); const v = (k) => { const x = String(f.get(k) ?? '').trim(); return x === '' ? undefined : parseFloat(x); };
+  const form = { name: String(f.get('name') ?? '').trim(), totalRise: v('totalRise'), risers: v('risers'), going: v('going'), nosing: v('nosing'),
+    treadT: v('treadT'), riserT: v('riserT'), stringerW: v('stringerW'), stringerT: v('stringerT'), saw: f.get('saw') === 'on' };
+  const out = $('#stairResult');
+  try {
+    const r = await maestro.stair(form); const p = r.plan, s = r.stringer;
+    const rows = [['Risers', p.risers], ['Treads', p.treads], ['Rise', n2(p.rise)], ['Going', n2(p.going)], ['Pitch', n2(p.pitchDeg) + '&deg;'],
+      ['2R + G', n2(p.twoRG)], ['Total going', n2(p.totalGoing)], ['Stringer', `${s.length} x ${n2(s.width)} x ${n2(s.thickness)}`], ['End cuts to the edge', n2(s.endCutAngle) + '&deg;']];
+    out.innerHTML = `<div class="panel">
+      <p class="status ${r.ok ? 'provisional' : 'error'}">${r.ok ? 'PROVISIONAL - open and save in Maestro, then cut a test on scrap' : 'NOT MADE - fix the problems below'}</p>
+      <table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>
+      ${r.problems.length ? `<ul>${r.problems.map((x) => `<li class="out">${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${r.notes.length ? `<ul>${r.notes.map((x) => `<li class="hint">${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${r.file ? `<div class="row"><button id="stairFile">${WEB ? 'Download' : 'Show file'}</button><button id="stairView">Open in viewer</button><span class="path">${esc(fileName(r.file))}</span></div>` : ''}
+      ${s.length > 3000 ? '<p class="hint">Long stringer: check it fits the machine table.</p>' : ''}</div>`;
+    if (r.file) {
+      $('#stairFile').onclick = () => maestro.showInFolder(r.file);
+      $('#stairView').onclick = () => { document.querySelector('nav button[data-tab=view]').click(); window.mtViewer.show(r.view); };
+    }
+  } catch (err) { out.innerHTML = `<div class="panel"><p class="status error">${esc(err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, ''))}</p></div>`; }
+});
+
 loadSettings();
