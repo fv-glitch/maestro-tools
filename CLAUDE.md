@@ -28,6 +28,11 @@ so the file format is stable.
    expands them from the macro file.
 9. **Back plane (the dy1 edge): plane x = dx1 - world X**, plane y = world Z (thickness).
 10. **Never overwrite a source program.** Write new files; the owner edits in Maestro between runs.
+10a. **Always make programs parametric.** Every position or size that depends on the part gets an
+   expression on dx1/dy1/dz1 (or a variable), never only a stored number: e.g. knob centre
+   `dy1-backset`, latch `dx1-Doorknob` / `dz1/2`, depths on a variable. The owner resizes programs in
+   Maestro; a fixed number stays put (an exterior door knob hole did, Nov 2026). Before delivering,
+   check every feature tied to an edge, centre or hardware height has an expression.
 11. Parity tests must stay byte-identical. If an engine change alters output, it needs a reason
     and a machine test, not a fixture update.
 
