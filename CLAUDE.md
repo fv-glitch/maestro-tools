@@ -52,6 +52,12 @@ so the file format is stable.
   on the STORED machining plus job-intent rows. If any formula on a macro/step reads a changed
   variable the result is PROVISIONAL until the owner opens + saves both files in Maestro and re-checks.
   UNTESTED: whether Maestro re-evaluates everything on open - confirm on the Maestro PC before relying on it.
+  SEEN (Nov 2026): when the owner edits + saves, Maestro re-expands macro instances from the .xsp. Steps taken out of
+  an expanded instance come back, so never remove sub-steps from an instance: use the macro's parameters (e.g.
+  PilotsFromCenter 0), a different macro, or plain steps. setVariables does NOT update the stored WorkPiece box or
+  plane origins/sizes, and Maestro does not fix them on save (APEX-based 810/710 doors kept an 860 box) - update them
+  whenever a size variable changes.
+- Toolpath moves are in world coordinates: Top plane dX,dY = plane dx,dy; Back plane world dX = -plane dx, dZ = plane dy.
 
 ## Panel jobs (src/ops/cabinet.ts, panelJob.ts)
 
@@ -91,6 +97,20 @@ so the file format is stable.
   in-material part of the stored toolpath (engine `inMaterial`, `cutSize`; renderer `cutsim.mjs` height-map tiles).
   Face frames in src/view/model.ts and src/renderer/cutsim.mjs must match. Sizes are clipped to the face for doors;
   jamb programs (0.1 thick, several pieces outside dx1 x dy1) are never clipped. Drill tips / V cutters are drawn flat.
+
+## Job programs and cut lists (scripts/job, src/ops/mixx.ts)
+
+- Job sheets (the shop app's PDF): one row per opening; a "Double" row is a PAIR (one LH + one RH leaf, one double jamb).
+  Name programs `DOOR <door nos> <rooms> - <hardware> <hand> <size>` / `JAMB <door nos> <rooms> - <hand> ...`.
+- Owner's flow: we build parametric programs; he opens them in Maestro, breaks up the macros, optimises and changes
+  tools/depths, then adds them to a .mixx with repetitions. Saw cuts run as separate programs (810Cut/710Cut, jamb
+  CutOnly) because the saw covers the tools in dust and shakes the machine. Review his saved files with the
+  scripts/job reviewers (read only) and compare against what we sent.
+- .mixx = zip: def.tlgx, `<n>/<program>.pgmx` (full copies, snapshots), `<list>.xml` (MixProject). Doors: Field LK,
+  MechanicalOptions 33751051, blank dx1 x dy1 x dz1; jambs: Field EF, 196618, blank dx1 x 503.4 x 29.85; TableOptions 11.
+  Element variables = the program's variables minus dx1..dz2, Key ID 0, no description, FisicalUnitType UnitLess.
+  `mixx` rebuilds the owner's 72427 list byte-identical except RealWidth on the APEX-lineage programs (Maestro wrote
+  859 from their stale 860 box). UNTESTED: loading a generated .mixx in Maestro.
 
 ## Known open item
 
