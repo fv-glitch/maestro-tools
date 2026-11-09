@@ -2,13 +2,18 @@
 //   right end = the leg's own top mitre cut, moved (part on the -X side, long point on the bottom face)
 //   left end  = the same cut turned 180 deg about Z (part on the +X side), so the saw does exactly what it does
 //               on the leg, only from the other side: same side-of-feature, same travel sense, same 0.7 skew
-// Short points (inside face, Z top) are DoorWidth + Gap apart: the opening between the legs, as in the owner's
-// 'Jamb Heads Core File' (square head = shiftcut .. shiftcut + DoorWidth + 6 + 2 JambThickness).
+// Short points (inside face, Z top) are the opening between the legs: Leaves * DoorWidth + 3 mm per gap
+// (3 each side, 3 between the leaves of a pair; the owner: gaps are always 3), as in his 'Jamb Heads Core File'
+// (square head = shiftcut .. shiftcut + DoorWidth + 6 + 2 JambThickness).
+// The head is always cut off the end of the bar, pushed up to the stops each run. The end left by the last head is
+// mitred the other way (top long), so at the stop its bottom face can be a whole thickness back: the left long
+// point (bottom face) sits at shiftcut + JambThickness, so the left cut always takes a full wedge (10 mm clear at
+// the bottom on a mitred end, as the leg's foot cut trims 10 off a square one).
 // The leg's line is the waste-side kerf edge on the top face, so each line sits one kerf (3.15 / sin 45) outside
 // its short point. Cut = 4 turns the square foot cut off (its IsEnabled is Cut=1 Or Cut=3).
 // Maestro adds the left cut's OperationGenerated plane when the file is saved (not cloned: it holds a copy of the
 // geometry Key ID).
-//   npx tsx scripts/job/mitrehead.ts leg-mitre.pgmx out.pgmx "Name" --door 810 [--gap 6]
+//   npx tsx scripts/job/mitrehead.ts leg-mitre.pgmx out.pgmx "Name" --door 810 [--leaves 2]
 import { readPgmx, getXml, writePgmx } from '../../src/engine/archive';
 import { Ids, cloneBlocks } from '../../src/engine/pgmx';
 import { assertSafe } from '../../src/engine/validate';
@@ -18,7 +23,7 @@ import { stepBlocks, splice, one, g18 } from './lib';
 
 const args = process.argv.slice(2);
 const opt = (f: string, d?: string) => { const i = args.indexOf(f); if (i < 0) { if (d === undefined) throw new Error('missing ' + f); return d; } const v = args[i + 1]; args.splice(i, 2); return v; };
-const door = +opt('--door'); const gap = opt('--gap', '6');
+const door = +opt('--door'); const leaves = +opt('--leaves', '1');
 const [src, out, name] = args;
 const a = readPgmx(src); const orig = getXml(a); let t = orig;
 const ids = new Ids(t);
@@ -27,8 +32,8 @@ const esc = (s: string) => s.replace(/[()[\]+.*?^$|\\]/g, '\\$&');
 // ---- DoorWidth variable (cloned from doorlength, placed before it, as in the Core File)
 if (/<Name[^>]*>DoorWidth<\/Name>/.test(t)) throw new Error('already has DoorWidth');
 const dl = one(/<a:Variable><Key[^>]*><ID>\d+<\/ID>(?:(?!<\/a:Variable>).)*?<Name[^>]*>doorlength<\/Name>.*?<\/a:Variable>/s, t, 'doorlength variable');
-const dw = cloneBlocks(ids, [dl[0]])[0].replace(/(<Name[^>]*>)doorlength</, '$1DoorWidth<').replace(/(<a:Value i:type="b:double"[^>]*>)[^<]*(<)/, `$1${door}$2`);
-t = splice(t, [[dl.index!, dl.index!, dw]]);
+const newVar = (nm: string, v: number) => cloneBlocks(ids, [dl[0]])[0].replace(/(<Name[^>]*>)doorlength</, `$1${nm}<`).replace(/(<a:Value i:type="b:double"[^>]*>)[^<]*(<)/, `$1${v}$2`);
+t = splice(t, [[dl.index!, dl.index!, newVar('DoorWidth', door) + newVar('Leaves', leaves)]]);
 
 // ---- the leg's mitre cut
 const stepRe = (nm: string) => new RegExp('<Executable i:type="a:MachiningWorkingStep"[^>]*><Key[^>]*><ID>(\\d+)</ID><ObjectType>[^<]*</ObjectType></Key><Name[^>]*>' + esc(nm) + '</Name>.*?</Executable>', 's');
@@ -52,9 +57,9 @@ if (Math.abs(skew - 0.7) > 1e-6 || Math.abs(y0 + 200) > 1e-9) throw new Error(`u
 
 // new formulas (StartX at y = -200, EndX at y = dy1 + 250, as on the leg)
 const kerf = '3.15/Sin(45)';
-const R = `shiftcut+JambThickness+DoorWidth+${gap}+${kerf}`;        // right line at the far end
-const Lx = `shiftcut+JambThickness-${kerf}`;                         // left line at y = dy1+250 (its start)
-const V = { ...variableValues(t), DoorWidth: door };
+const R = `shiftcut+2*JambThickness+Leaves*DoorWidth+3*(Leaves+1)+${kerf}`; // right line at the far end
+const Lx = `shiftcut+2*JambThickness-${kerf}`;                              // left line at y = dy1+250 (its start)
+const V = variableValues(t);
 const rStart = evaluate(`${R}-0.7`, V), lStart = evaluate(Lx, V);
 const dx = rStart - x0;
 
