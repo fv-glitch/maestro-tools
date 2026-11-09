@@ -102,8 +102,9 @@ so the file format is stable.
 
 - Job sheets (the shop app's PDF): one row per opening; a "Double" row is a PAIR (one LH + one RH leaf, one double jamb).
   Name programs `DOOR <door nos> <rooms> - <hardware> <hand> <size>` / `JAMB <door nos> <rooms> - <hand> ...`.
-- Owner's flow: we build parametric programs; he opens them in Maestro, breaks up the macros, optimises and changes
-  tools/depths, then adds them to a .mixx with repetitions. Saw cuts run as separate programs (810Cut/710Cut, jamb
+- Owner's flow: we build parametric programs; he opens them in Maestro, optimises and changes tools/depths/macro
+  parameters (normally keeping the macros intact - 72427 was an exception where he broke them up), then adds them
+  to a .mixx with repetitions. Deliver nothing that a re-expansion on save would undo. Saw cuts run as separate programs (810Cut/710Cut, jamb
   CutOnly) because the saw covers the tools in dust and shakes the machine. Review his saved files with the
   scripts/job reviewers (read only) and compare against what we sent.
 - .mixx = zip: def.tlgx, `<n>/<program>.pgmx` (full copies, snapshots), `<list>.xml` (MixProject). Doors: Field LK,
