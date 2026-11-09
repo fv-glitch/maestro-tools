@@ -83,3 +83,12 @@ export function disableEdits(t: string, names: string[]): { edits: [number, numb
 
 export function checkGone(t: string, gone: Set<string>) { for (const id of gone) if (t.includes(`>${id}<`)) throw new Error('dangling reference to ' + id); }
 export { splice };
+
+// Maestro writes geometry and toolpath numbers as C printf %.18g
+export function g18(v: number): string {
+  if (v === 0) return Object.is(v, -0) ? '-0' : '0';
+  const [m0, e0] = v.toExponential(17).split('e'); const e = +e0;
+  const trim = (x: string) => x.includes('.') ? x.replace(/\.?0+$/, '') : x;
+  if (e < -4 || e >= 18) return trim(m0) + 'e' + (e < 0 ? '-' : '+') + String(Math.abs(e)).padStart(2, '0');
+  return trim(v.toFixed(Math.max(0, 17 - e)));
+}

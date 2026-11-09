@@ -18,6 +18,7 @@ from the repo root. They are not covered by the parity tests; check every output
 | `fixhinge.ts src out name` | Put enabled hinge instances back on CoordinateY 0 (stray 1 mm offsets), moving their expanded steps. |
 | `fixaxis.ts` | Reset ToolAxis vectors that an earlier tool translated by mistake. |
 | `rhmacro.ts lh.xsp out.xsp` / `rhdoor.ts` | Nido8423RHv2: the LH dummy rose with the plate pilots mirrored in X (RH = LH rose, pilots +135/-65). |
+| `engrave.ts in out name --template "Routing(19)" --tool E017=2149904436 --width 3 --depth 1 --layers A,B` | Program unprogrammed drawing geometry (DXF layers) as centre-line routings cloned from a routing already in the program, toolpath built the way Maestro stores it (plunge, curve at depth, lift; numbers as %.18g). `SELFTEST=1` rebuilds the template's own toolpath: all 86 text routings on Pallet_Text came out identical to Maestro's. |
 | `rename.ts src dir stem` | Save-as under a new name (renames the inner program entries). |
 
 ## Reviewing (read only)
