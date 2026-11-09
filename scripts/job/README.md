@@ -19,6 +19,7 @@ from the repo root. They are not covered by the parity tests; check every output
 | `fixaxis.ts` | Reset ToolAxis vectors that an earlier tool translated by mistake. |
 | `rhmacro.ts lh.xsp out.xsp` / `rhdoor.ts` | Nido8423RHv2: the LH dummy rose with the plate pilots mirrored in X (RH = LH rose, pilots +135/-65). |
 | `engrave.ts in out name --template "Routing(19)" --tool E017=2149904436 --width 3 --depth 1 --layers A,B` | Program unprogrammed drawing geometry (DXF layers) as centre-line routings cloned from a routing already in the program, toolpath built the way Maestro stores it (plunge, curve at depth, lift; numbers as %.18g). `SELFTEST=1` rebuilds the template's own toolpath: all 86 text routings on Pallet_Text came out identical to Maestro's. |
+| `mitrehead.ts leg-mitre.pgmx out name --door 810 [--gap 6]` | Mitred jamb head from a leg mitre program (72224 'JAMBCUT 112 28mm Cut Mitre'): DoorWidth variable, right end = the leg's 45 deg cut moved, left end = the same cut turned 180 deg about Z (same side, travel sense and 0.7 skew), Cut = 4 (foot cut off). Short points (inside face up) DoorWidth + 6 apart, as in 'Jamb Heads Core File'. Checked from the stored toolpaths: 816 / 854 (T 19) for 810 at every Y. UNTESTED in Maestro / on the machine. |
 | `rename.ts src dir stem` | Save-as under a new name (renames the inner program entries). |
 
 ## Reviewing (read only)
