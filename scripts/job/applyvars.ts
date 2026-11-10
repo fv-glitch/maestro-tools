@@ -12,7 +12,7 @@ import { setVariables, variableValues } from '../../src/engine/variables';
 import { evaluate } from '../../src/engine/formula';
 import { assertSafe } from '../../src/engine/validate';
 import { stepBlocks, translateRecords, translateGeometry, translateOperation, splice, one, r6 } from './lib';
-import { storedValue, vspBlock, geomBlock, paramAt, lineOf } from './exprs';
+import { storedValue, vspBlock, geomBlock, featBlock, paramAt, lineOf } from './exprs';
 
 export function planeNameOf(t: string, g: string) {
   const pid = one(/<a:PlaneID[^>]*><b:ID>(\d+)/, g, 'plane id')[1];
@@ -31,21 +31,26 @@ export interface ApplyOptions {
   sizeFreeMacros?: string[];
   /** allow workpiece size changes: box, planes and axis-aligned lines that only change length are updated */
   resize?: boolean;
+  /** feature IDs whose stored Depth may follow its formula (the caller re-derives their toolpaths, see resize.ts) */
+  depthFeatures?: Set<string>;
 }
 
 export function applyVars(orig: string, inputs: Record<string, number>, opt: ApplyOptions = {}) {
   const t = setVariables(orig, inputs).xml;
   const before = variableValues(orig), after = variableValues(t);
-  const edits: [number, number, string][] = []; const log: string[] = []; const touched = new Set<number>();
-  const put = (blk: string, nb: string) => {
+  const edits: [number, number, string][] = []; const log: string[] = [];
+  // a block may be moved by more than one change (e.g. CoordinateX and CoordinateY of one instance): moves compose
+  const moved = new Map<number, { end: number; text: string }>();
+  const put = (blk: string, f: (x: string) => string) => {
     const at = t.indexOf(blk); if (at < 0 || t.indexOf(blk, at + 1) >= 0) throw new Error('block not unique');
-    if (touched.has(at)) throw new Error('block moved twice'); touched.add(at); edits.push([at, at + blk.length, nb]);
+    const cur = moved.get(at); moved.set(at, { end: at + blk.length, text: f(cur ? cur.text : blk) });
   };
   const lines = new Map<string, Record<string, [number, number]>>();
   const wp: [string, string, number, number][] = [];
   for (const e of [...t.matchAll(/<a:Expression>.*?<\/a:Expression>/gs)].map((m) => m[0])) {
     const s = storedValue(t, e);
     if (s.kind === 'variable') continue;
+    if (s.kind === 'unknown' && opt.depthFeatures?.size && /^PlaneGenerated\b.*\bDepth$/.test(s.what)) continue; // resize.ts updates these planes
     if (s.kind === 'unknown') {
       // unknown kinds are fine as long as their formula does not change value
       const f = /<a:Value>([^<]*)<\/a:Value>/.exec(e)?.[1] ?? '';
@@ -81,9 +86,9 @@ export function applyVars(orig: string, inputs: Record<string, number>, opt: App
       } else throw new Error(`${s.what}: not handled`);
       if (exp && (dx || dy)) {
         const pl = planeNameOf(t, exp.geometries[0]); const [wx, wy, wz] = worldDelta(pl, dx, dy);
-        for (const g of exp.geometries) { if (planeNameOf(t, g) !== pl) throw new Error('mixed planes in ' + s.what); put(g, translateGeometry(g, dx, dy)); }
-        for (const op of exp.operations) put(op, translateOperation(op, wx, wy, wz));
-        if (movesFeatures) for (const f of exp.features) put(f, translateRecords(f, fdx, fdy, 0));
+        for (const g of exp.geometries) { if (planeNameOf(t, g) !== pl) throw new Error('mixed planes in ' + s.what); put(g, (x) => translateGeometry(x, dx, dy)); }
+        for (const op of exp.operations) put(op, (x) => translateOperation(x, wx, wy, wz));
+        if (movesFeatures) for (const f of exp.features) put(f, (x) => translateRecords(x, fdx, fdy, 0));
       }
       log.push(`${s.what}: ${o} -> ${n}${exp ? `, ${exp.steps.length} steps moved` : enabled ? '' : ' (off)'}`);
     } else if (s.refType === 'WorkPiece' && opt.resize) {
@@ -97,6 +102,11 @@ export function applyVars(orig: string, inputs: Record<string, number>, opt: App
       const m = new RegExp(`(<${tag}>)([^<]+)(<)`).exec(g.text)!; const p = g.start + m.index + m[1].length;
       edits.push([p, p + m[2].length, pyLen(n, m[2])]);
       log.push(`${s.what}: ${o} -> ${n} (step ${users.map((u) => u[1]).join(', ')} is off; its toolpath is left for Maestro)`);
+    } else if (/Depth$/.test(s.prop) && opt.depthFeatures?.has(s.refId)) {
+      const f = featBlock(t, s.refId)!; const tag = s.prop.split('.').pop()!;
+      const m = new RegExp(`(<${tag}>)([^<]+)(<)`).exec(f.text)!; const p = f.start + m.index + m[1].length;
+      edits.push([p, p + m[2].length, pyLen(n, m[2])]);
+      log.push(`${s.what}: ${o} -> ${n} (toolpath follows)`);
     } else if (s.refType === 'GeomTrimmedCurve') {
       const r = lines.get(s.refId) ?? {}; r[s.prop] = [o, n]; lines.set(s.refId, r);
     } else throw new Error(`${s.what} = ${s.formula} changes ${o} -> ${n}; not handled`);
@@ -116,7 +126,7 @@ export function applyVars(orig: string, inputs: Record<string, number>, opt: App
       if (Math.abs(axis === 'y' ? want.EndX - now.EndX : want.EndY - now.EndY) > 1e-9) throw new Error(`line ${gid}: end moves off the line`);
       const oldL = r6(l.L), newL = r6(l.L + dL), oldEnd = axis === 'y' ? now.EndY : now.EndX, newEnd = axis === 'y' ? want.EndY : want.EndX;
       lengthChanges.push({ gid, oldL: l.L, newL: l.L + dL, axis, oldEnd, newEnd });
-      put(g.text, g.text.replace(/(Description>8 0 )(\S+)(\n)/, (_m, a, _b, c) => a + pyLen(l.L + dL, _b) + c));
+      put(g.text, (x) => x.replace(/(Description>8 0 )(\S+)(\n)/, (_m, a, _b, c) => a + pyLen(l.L + dL, _b) + c));
       for (const f of t.matchAll(new RegExp('<ManufacturingFeature i:type="[^"]+"[^>]*><Key[^>]*><ID>(\\d+)</ID>(?:(?!</ManufacturingFeature>).)*?<GeometryID[^>]*><b:ID>' + gid + '<', 'gs'))) {
         for (const st of t.matchAll(new RegExp('<Executable i:type="a:MachiningWorkingStep"(?:(?!</Executable>).)*?ManufacturingFeatureID[^>]*><b:ID>' + f[1] + '<(?:(?!</Executable>).)*?OperationID[^>]*><b:ID>(\\d+)', 'gs'))) {
           const op = one(new RegExp('<Operation i:type="[^"]+"[^>]*><Key[^>]*><ID>' + st[1] + '</ID>.*?</Operation>', 's'), t, 'op')[0];
@@ -127,19 +137,19 @@ export function applyVars(orig: string, inputs: Record<string, number>, opt: App
           // no stored toolpath, or a disabled step whose stored toolpath Maestro already left stale (it does not recompute them)
           if (no === op && (!/Description>8 /.test(op) || /<IsEnabled>false<\/IsEnabled>/.test(st[0].slice(0, 2000)))) continue;
           if (no === op) throw new Error(`line ${gid}: toolpath not updated`);
-          put(op, no);
+          put(op, () => no);
         }
       }
       log.push(`line ${gid}: length ${oldL} -> ${newL}`);
       continue;
     }
-    put(g.text, translateGeometry(g.text, dx, dy));
+    put(g.text, (x) => translateGeometry(x, dx, dy));
     const pl = planeNameOf(t, g.text); const [wx, wy, wz] = worldDelta(pl, dx, dy);
     // every step whose feature uses this line
     for (const f of t.matchAll(new RegExp('<ManufacturingFeature i:type="[^"]+"[^>]*><Key[^>]*><ID>(\\d+)</ID>(?:(?!</ManufacturingFeature>).)*?<GeometryID[^>]*><b:ID>' + gid + '<', 'gs'))) {
       for (const st of t.matchAll(new RegExp('<Executable i:type="a:MachiningWorkingStep"(?:(?!</Executable>).)*?ManufacturingFeatureID[^>]*><b:ID>' + f[1] + '<(?:(?!</Executable>).)*?OperationID[^>]*><b:ID>(\\d+)', 'gs'))) {
         const op = one(new RegExp('<Operation i:type="[^"]+"[^>]*><Key[^>]*><ID>' + st[1] + '</ID>.*?</Operation>', 's'), t, 'op')[0];
-        put(op, translateOperation(op, wx, wy, wz));
+        put(op, (x) => translateOperation(x, wx, wy, wz));
       }
     }
     log.push(`line ${gid} (${pl}): moved ${r6(dx)} / ${r6(dy)}`);
@@ -159,7 +169,7 @@ export function applyVars(orig: string, inputs: Record<string, number>, opt: App
       const pl = t.slice(planesAt, planesEnd);
       for (const f of pl.matchAll(/(<(XDimension|YDimension|a:_xP|a:_yP|a:_zP)>)([^<]+)(<)/g)) {  // saw planes keep their <Width> (Maestro leaves it)
         const v = +f[3]; let nv: number | null = null;
-        if (Math.abs(v - o) < 1e-9 && f[2] !== 'a:_zP') nv = n;
+        if (Math.abs(v - o) < 1e-9 && (f[2] !== 'a:_zP' || prop === 'Depth')) nv = n; // a Top plane sits at z = dz1
         for (const c of lengthChanges) if (f[2] === 'XDimension' && Math.abs(v - c.oldL) < 1e-9) nv = c.newL;
         if (nv === null) continue;
         const p = planesAt + f.index! + f[1].length; edits.push([p, p + f[3].length, pyLen(nv, f[3])]);
@@ -169,6 +179,7 @@ export function applyVars(orig: string, inputs: Record<string, number>, opt: App
       }
     }
   }
+  for (const [at, m] of moved) edits.push([at, m.end, m.text]);
   return { xml: splice(t, edits), log };
 }
 const reEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
