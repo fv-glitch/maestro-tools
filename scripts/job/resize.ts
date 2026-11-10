@@ -54,8 +54,24 @@ export function followDepth(op: string, dzOld: number, dzNew: number): string {
   });
 }
 
-export function resize(orig: string, inputs: Record<string, number>, opt: { resize?: boolean; sizeFree?: string[]; depthFollow?: string[]; depthSteps?: string[] }) {
+/** Macros proven against programs the owner saved in Maestro (identical relative to placement / progdiff MATCH).
+ *  A macro goes in here only after that comparison, per macro and per kind of change. */
+export const PROVEN_SIZE_FREE: Record<string, string> = {
+  MRUdoorhinge89mmLeft: 'dy1 (510/660/810) and dz1 38->36 (72199 810LH -> real.pgmx)',
+  ShanesHingeHoles: 'dy1 (510/660/810) and dz1 38->36 (72199 810LH -> real.pgmx)',
+  PhoenixDummy: 'dy1 (510/660/810)',
+  CirqueLock: 'dy1 810->705/760 and dz1 38->36 (72199 810LH -> test/real.pgmx, 2026-11-11)',
+};
+export const PROVEN_DEPTH_FOLLOW: Record<string, string> = {
+  '54mmHole': 'dy1 810->705/760 and dz1 38->36 (72199 810LH -> test/real.pgmx, 2026-11-11)',
+};
+
+export function resize(orig: string, inputs: Record<string, number>, opt: { resize?: boolean; sizeFree?: string[]; depthFollow?: string[]; depthSteps?: string[]; unproven?: boolean }) {
   const follow = opt.depthFollow ?? [];
+  if (!opt.unproven) {
+    for (const m of opt.sizeFree ?? []) if (!PROVEN_SIZE_FREE[m]) throw new Error(`${m} is not proven size-free against a Maestro save (prove it with progdiff, add it to PROVEN_SIZE_FREE, or pass --unproven for a test file)`);
+    for (const m of follow) if (!PROVEN_DEPTH_FOLLOW[m]) throw new Error(`${m} is not proven for --depth-follow against a Maestro save`);
+  }
   // plain (top-level) steps whose depth = dz1 formula: their feature depth follows, their toolpath is re-derived below
   const plain = (opt.depthSteps ?? []).map((nm) => {
     const ms = [...orig.matchAll(/<Executable i:type="a:MachiningWorkingStep"[^>]*><Key[^>]*><ID>\d+<\/ID><ObjectType>[^<]*<\/ObjectType><\/Key><Name[^>]*>([^<]*)<\/Name>.*?<\/Executable>/gs)].filter((m) => m[1] === nm);
@@ -133,7 +149,7 @@ if (process.argv[1]?.endsWith('resize.ts')) {
   const flags = kv.filter((s) => s.startsWith('--')); const kvs = kv.filter((s) => !s.startsWith('--'));
   const list = (f: string) => flags.find((x) => x.startsWith(f + '='))?.slice(f.length + 1).split(',') ?? [];
   const { xml, log } = resize(orig, Object.fromEntries(kvs.map((s) => { const [k, v] = s.split('='); return [k, +v]; })),
-    { resize: flags.includes('--resize'), sizeFree: list('--size-free'), depthFollow: list('--depth-follow'), depthSteps: list('--depth-steps') });
+    { resize: flags.includes('--resize'), sizeFree: list('--size-free'), depthFollow: list('--depth-follow'), depthSteps: list('--depth-steps'), unproven: flags.includes('--unproven') });
   assertSafe(orig, xml);
   const V = variableValues(xml); const stale: string[] = [];
   for (const e of [...xml.matchAll(/<a:Expression>.*?<\/a:Expression>/gs)].map((m) => m[0])) {
