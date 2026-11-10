@@ -124,6 +124,8 @@ export function applyVars(orig: string, inputs: Record<string, number>, opt: App
           const k = axis === 'y' ? 2 : 1;
           let no = op.replace(new RegExp('(Description>8 0 )' + reEsc(String(l.L)) + '(\\n)', 'g'), (_m, a, c) => a + pyLen(l.L + dL, String(l.L)) + c);
           no = no.replace(/(\n1 )(\S+) (\S+) /g, (m0, a, x, y) => (k === 2 ? Math.abs(+y - oldEnd) < 1e-9 ? `${a}${x} ${pyLen(newEnd, y)} ` : m0 : Math.abs(+x - oldEnd) < 1e-9 ? `${a}${pyLen(newEnd, x)} ${y} ` : m0));
+          // no stored toolpath, or a disabled step whose stored toolpath Maestro already left stale (it does not recompute them)
+          if (no === op && (!/Description>8 /.test(op) || /<IsEnabled>false<\/IsEnabled>/.test(st[0].slice(0, 2000)))) continue;
           if (no === op) throw new Error(`line ${gid}: toolpath not updated`);
           put(op, no);
         }
