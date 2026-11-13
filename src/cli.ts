@@ -7,6 +7,8 @@
  *   safe <file.pgmx>                                file-health checks Maestro cares about
  *   generate <job.json> <masters.json> <outDir> [--height-hand LH|RH]
  *   panels <parts.json> <plan.json|-> <outDir> --base <TestingDoorReal.pgmx> --template <Beta-Optimised - Final.pgmx> (old name: --itm) --apex <APEX Passage.pgmx>
+ *   mixx <list.json> <out.mixx>                    build a Maestro cut list (.mixx) from programs + repetitions
+ *   mixx-read <file.mixx>                           what a cut list holds (folder, program, repetitions, field, blank)
  *   stair <out.pgmx> --base <TestingDoorReal.pgmx> --template <stair-test.pgmx> [--saw <stair-sawcuts.pgmx>] --rise 2700 [--tread 32 --riser 18 --width 290 --thick 42 --going --risers --nosing]
  */
 import { readPgmx, getXml } from './engine/archive';
@@ -21,6 +23,7 @@ import { writePgmx } from './engine/archive';
 import { assertSafe } from './engine/validate';
 import { loadTemplates } from './ops/cabinet';
 import { stringerProgram } from './ops/stairProgram';
+import { buildMixx, readMixx, type MixEntry } from './ops/mixx';
 import { partPrograms, sawPrograms, stripPrograms, type Part, type PlanJSON, type Program } from './ops/panelJob';
 
 const [cmd, ...args] = process.argv.slice(2);
@@ -34,7 +37,19 @@ try {
     console.log(`${(m.macro ?? '-').padEnd(28)} ${m.step.padEnd(34)} ${m.feature.padEnd(22)} ${m.plane.padEnd(10)} d${m.depth ?? '-'} ${b}`);
   }
   else if (cmd === 'safe') { const t = xml(args[0]); const s = strayTextProblems(t); console.log(s.length ? s.join('\n') : 'no stray text'); console.log('duplicate key IDs:', [...duplicateIds(t)].join(', ') || 'none'); }
-  else if (cmd === 'generate') {
+  else if (cmd === 'mixx') {
+    const specPath = args[0]; const spec = JSON.parse(readFileSync(specPath, 'utf8')) as { listName: string; firstId?: number; firstFolder?: number; entries: MixEntry[] };
+    const base = path.dirname(specPath);
+    const entries = spec.entries.map((e) => ({ ...e, pgmx: path.resolve(base, e.pgmx) }));
+    writeFileSync(args[1], buildMixx(entries, { listName: spec.listName, firstId: spec.firstId, firstFolder: spec.firstFolder }));
+    const r = readMixx(new Uint8Array(readFileSync(args[1])));
+    for (const x of r.rows) console.log(`${x.folder.padStart(3)}  x${String(x.repetitions).padEnd(3)} ${x.field}  ${x.size.padEnd(22)} ${x.name}`);
+    console.log(`${r.rows.length} programs, ${r.rows.reduce((a, x) => a + x.repetitions, 0)} runs -> ${args[1]}`);
+  } else if (cmd === 'mixx-read') {
+    const r = readMixx(new Uint8Array(readFileSync(args[0])));
+    console.log(r.list);
+    for (const x of r.rows) console.log(`${x.folder.padStart(3)}  x${String(x.repetitions).padEnd(3)} ${x.field}  ${x.size.padEnd(22)} ${x.name}${x.present ? '' : '   <-- program missing from the .mixx'}`);
+  } else if (cmd === 'generate') {
     const job = JSON.parse(readFileSync(args[0], 'utf8')) as Job; const masters = JSON.parse(readFileSync(args[1], 'utf8')) as Masters;
     const g = generate(job, masters, { outDir: args[2], heightHand: (flag('--height-hand') as 'LH' | 'RH') ?? 'LH' });
     console.log('door ->', g.doorPath); for (const c of g.doorChanges) console.log(`   ${c.name}: ${c.from} -> ${c.to}${c.derived ? ' (calculated)' : ''}`);
