@@ -6,7 +6,7 @@
 //
 // Setup: architrave face up, THICK (square) edge against the metal fence between the jamb lanes, bevelled edge to the
 // rubber clamps, bar pushed to the X stops. Long points are on the thick edge, short points on the thin edge.
-//   Leg Right: RH lane (Y 0..dy1), foot at the stops.   Leg Left: LH lane (Y -25-dy1..-25), foot at the stops.
+//   Leg Right: RH lane (Jamb 1, above the fence), foot at the stops.   Leg Left: LH lane (Jamb 2, below the fence).
 //   Head: RH lane, the first mitre kept HeadStart in from the stops.
 // Seen from the face of the door, Leg Right / Leg Left are the right / left legs. One door face = one of each + a head.
 // Only one piece on the table: the 45 deg cuts run on across the other lane.
@@ -36,6 +36,7 @@ import { pyRepr as r } from '../../src/engine/pyfmt';
 const args = process.argv.slice(2);
 const opt = (f: string, d: string) => { const i = args.indexOf(f); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
 const W = +opt('--width', '60'), T = +opt('--thick', '10'), BAR = +opt('--bar', '2400');
+const FENCE = 366.5, J1_Y = 391.4, J2_Y = Math.round((FENCE - W) * 1000) / 1000;   // table Y: fence (Jamb 2 side), Jamb 1 corner, Jamb 2 corner
 const [basePath, outDir] = args;
 const A = readPgmx(basePath); const base = getXml(A); const saw = base;
 const sawY = blocks(saw, 'Cut with blade');
@@ -81,11 +82,19 @@ function efBlank(src: string, L: number, W: number): string {
   for (const [n, v] of [['dx1', L], ['dx2', L], ['dy1', W], ['dy2', W]] as const) t = setVar(t, n, v);
   t = t.replace(/(<WorkPiece>.*?<\/WorkPiece>)/gs, (wp) => wp.replace(/(<a:Length>)[^<]*(<\/a:Length><a:Width>)[^<]*(<)/, (_m, a, b, c) => a + r(L) + b + r(W) + c)
     .replace(/(<\/Geometry><Length>)[^<]*(<)/, (_m, a, b) => a + r(L) + b).replace(/(<\/State><Width>)[^<]*(<)/, (_m, a, b) => a + r(W) + b));
+  // Jamb 2 (the lane below the fence) is placed against the fence: table Y 366.5 - W .. 366.5 (it was 254.5 .. 366.5 at 112)
+  { const id = /<ID>(\d+)<\/ID><ObjectType>ScmGroup\.XCam\.MachiningDataModel\.ProjectModule\.WorkPiece<\/ObjectType><\/Key><Name[^>]*>Jamb 2</.exec(t)![1];
+    const su = [...t.matchAll(/<a:WorkpieceSetup>.*?<\/a:WorkpieceSetup>/gs)].filter((m) => m[0].includes(`<b:ID>${id}</b:ID>`));
+    if (su.length !== 1 || !/<b:_yP>254\.5</.test(su[0][0])) throw new Error('Jamb 2 setup not at Y 254.5');
+    if (!/<b:_yP>391\.4</.test(t)) throw new Error('Jamb 1 setup not at Y 391.4');
+    t = t.slice(0, su[0].index!) + su[0][0].replace(/(<b:_yP>)254\.5(<)/, `$1${r(J2_Y)}$2`) + t.slice(su[0].index! + su[0][0].length); }
   // face planes: the jamb width 112 -> W (Y extents and the Left / Back / Bottom origins)
   return t.replace(/<Plane>.*?<\/Plane>/gs, (p) => p.replace(/(<a:_yP>)112(<)/, `$1${r(W)}$2`).replace(/(<YDimension>)112(<)/, `$1${r(W)}$2`).replace(/(<XDimension>)112(<)/, `$1${r(W)}$2`));
 }
-// Lanes (from the jamb programs: hinge pockets overrun 7 mm past the fence edges at Y0 and Y-25):
-//   RH lane Y 0 .. dy1 (thick edge on the fence at Y0), LH lane Y -25-dy1 .. -25 (thick edge on the fence at Y-25).
+// Lanes. The fence is table Y 366.5 .. 391.4 (Jamb 2 112 wide at 254.5, Jamb 1 at 391.4 in every jamb program).
+// The saw cuts are on Top(1), Jamb 2's plane, so their coordinates start at Jamb 2's corner (moved to 366.5 - W):
+//   LH lane = Jamb 2: Y 0 .. W, thick edge on the fence at Y W.   RH lane = Jamb 1: Y W+24.9 .. W+24.9+dy1, thick edge at W+24.9.
+// (Nov 16: the first EF build took Jamb 1's corner as the origin - Leg Left showed off the part in Maestro.)
 // Nothing (blade path or the blade's chord at the top of the bar, Ø249 dipped 12 below it) comes nearer the X stops
 // than the jamb programs' own trim cut (blade face at X 6.85). Mitre start cuts are kept HeadStart in for that.
 const RUN_SQ = 100;                       // straight cuts run 100 past each edge, like the jamb template
@@ -93,7 +102,8 @@ const RUN_45 = 60;                        // 45 deg cuts run 60 along the line p
 const K = 3.15, HK = K / 2, MK = '4.455'; // kerf, half kerf, kerf measured along X on a 45 deg cut
 const LEG = 'FloorGap+DoorHeight+3+Reveal';                       // leg short point
 const HEAD = 'Leaves*DoorWidth+3*(Leaves+1)+2*Reveal';            // head short point
-const LANE = { RH: { thick: '0', thin: 'dy1' }, LH: { thick: '-25', thin: '-25-dy1' } };
+const yl = (v: number) => r(Math.round(v * 1000) / 1000);
+const LANE = { RH: { thick: yl(J1_Y - J2_Y), thin: `${yl(J1_Y - J2_Y)}+dy1` }, LH: { thick: yl(FENCE - J2_Y), thin: `${yl(FENCE - J2_Y)}-dy1` } };
 /** a cut through two points on the bar's edges, blade (waste) on the -X or +X side */
 type Cut = { name: string; a: [string, string]; b: [string, string]; waste: '-X' | '+X' };
 const sq = (name: string, x: string, lane: keyof typeof LANE, waste: '-X' | '+X'): Cut => ({ name, a: [x, LANE[lane].thick], b: [x, LANE[lane].thin], waste });
