@@ -6,13 +6,13 @@
 //                       curve's _secondParameter follow, and the features' Depth (= old dz1) becomes the new dz1.
 //                       Refuses if the number of passes would change (Maestro would add or drop a pass).
 // Checked against Maestro: 72199 810LH (810x38, 990) -> 705x38 and 760x36 knob 1000, saved by the owner 2026-11-11.
-//   npx tsx scripts/job/resize.ts src.pgmx out.pgmx "Name" Var=value ... [--resize] [--size-free=..] [--depth-follow=..]
+//   npx tsx scripts/job/resize.ts src.pgmx out.pgmx "Name" Var=value ... [--resize] [--size-free=..] [--depth-follow=..] [--right-y-follow=..]
 import { readPgmx, getXml, writePgmx } from '../../src/engine/archive';
 import { variableValues } from '../../src/engine/variables';
 import { evaluate } from '../../src/engine/formula';
 import { assertSafe } from '../../src/engine/validate';
 import { applyVars, planeNameOf } from './applyvars';
-import { stepBlocks, splice, g18, translateOperation } from './lib';
+import { stepBlocks, splice, g18, translateOperation, translateGeometry } from './lib';
 import { storedValue } from './exprs';
 
 const near = (a: number, b: number) => Math.abs(a - b) < 1e-7;
@@ -60,14 +60,21 @@ export const PROVEN_SIZE_FREE: Record<string, string> = {
   MRUdoorhinge89mmLeft: 'dy1 (510/660/810) and dz1 38->36 (72199 810LH -> real.pgmx)',
   ShanesHingeHoles: 'dy1 (510/660/810) and dz1 38->36 (72199 810LH -> real.pgmx)',
   PhoenixDummy: 'dy1 (510/660/810)',
+  // on the Left plane (x = dy1 - Y) the expansion is identical and the toolpath moves with the plane
+  Magnet: 'Left plane only: dy1 610->760 (Narley 72245 610 Magnet / 760 Magnet, both saved by the owner)',
   CirqueLock: 'dy1 810->705/760 and dz1 38->36 (72199 810LH -> test/real.pgmx, 2026-11-11)',
 };
 export const PROVEN_DEPTH_FOLLOW: Record<string, string> = {
   '54mmHole': 'dy1 810->705/760 and dz1 38->36 (72199 810LH -> test/real.pgmx, 2026-11-11)',
 };
 
-export function resize(orig: string, inputs: Record<string, number>, opt: { resize?: boolean; sizeFree?: string[]; depthFollow?: string[]; depthSteps?: string[]; unproven?: boolean }) {
-  const follow = opt.depthFollow ?? [];
+/** Macros on the Right plane (x = world Y) whose part stays a fixed distance in from the dy1 edge: when dy1 changes by d,
+ *  their plane geometry moves d in plane x and their toolpaths d in world Y (e.g. MagnetLH, MagIn from the latch edge). */
+export const PROVEN_RIGHT_Y_FOLLOW: Record<string, string> = {};
+
+export function resize(orig: string, inputs: Record<string, number>, opt: { resize?: boolean; sizeFree?: string[]; depthFollow?: string[]; depthSteps?: string[]; rightYFollow?: string[]; unproven?: boolean }) {
+  const follow = opt.depthFollow ?? []; const rightY = opt.rightYFollow ?? [];
+  if (!opt.unproven) for (const m of rightY) if (!PROVEN_RIGHT_Y_FOLLOW[m]) throw new Error(`${m} is not proven for --right-y-follow against a Maestro save (pass --unproven for a test file)`);
   if (!opt.unproven) {
     for (const m of opt.sizeFree ?? []) if (!PROVEN_SIZE_FREE[m]) throw new Error(`${m} is not proven size-free against a Maestro save (prove it with progdiff, add it to PROVEN_SIZE_FREE, or pass --unproven for a test file)`);
     for (const m of follow) if (!PROVEN_DEPTH_FOLLOW[m]) throw new Error(`${m} is not proven for --depth-follow against a Maestro save`);
@@ -79,7 +86,7 @@ export function resize(orig: string, inputs: Record<string, number>, opt: { resi
     const sb = stepBlocks(orig, ms[0][0]);
     return { nm, sid: /<Key[^>]*><ID>(\d+)<\/ID>/.exec(ms[0][0])![1], fid: /<Key[^>]*><ID>(\d+)<\/ID>/.exec(sb.features[0])![1], opId: /<Key[^>]*><ID>(\d+)<\/ID>/.exec(sb.operations[0])![1] };
   });
-  const r = applyVars(orig, inputs, { resize: opt.resize, sizeFreeMacros: [...(opt.sizeFree ?? []), ...follow], depthFeatures: new Set(plain.map((p) => p.fid)) });
+  const r = applyVars(orig, inputs, { resize: opt.resize, sizeFreeMacros: [...(opt.sizeFree ?? []), ...follow, ...rightY], depthFeatures: new Set(plain.map((p) => p.fid)) });
   let t = r.xml; const log = [...r.log];
   if (plain.length) {
     const b0 = variableValues(orig).dz1, b1 = variableValues(t).dz1;
@@ -102,20 +109,32 @@ export function resize(orig: string, inputs: Record<string, number>, opt: { resi
   }
   const before = variableValues(orig), after = variableValues(t);
   const dzOld = before.dz1, dzNew = after.dz1;
-  // far-edge planes move with the workpiece: Back (y = dy1) and Right (x = dx1). Expanded steps of size-free macros on
-  // them keep their plane geometry; their world toolpaths move with the plane (checked: CirqueLock 810 -> 705).
+  // far-edge planes move with the workpiece: Back (y = dy1), Left (its origin is at Y = dy1) and Right (x = dx1).
+  // Expanded steps of size-free macros on them keep their plane geometry; their world toolpaths move with the plane
+  // (checked: CirqueLock 810 -> 705 on Back, Magnet 610 -> 760 on Left).
   const ddy = after.dy1 - before.dy1, ddx = after.dx1 - before.dx1;
   if (!near(ddy, 0) || !near(ddx, 0)) {
     const edits: [number, number, string][] = [];
     for (const m of t.matchAll(/<Executable i:type="VisualSubProgram"><Key[^>]*><ID>\d+<\/ID><ObjectType>[^<]*<\/ObjectType><\/Key><Name[^>]*>([^<]*)<\/Name><Description\/><IsEnabled>true<\/IsEnabled>/g)) {
       const end = t.indexOf('</FileName></Executable>', m.index!);
       const blk = t.slice(m.index!, end); const fn = /<FileName>([^<]*)$/.exec(blk)?.[1] ?? '';
-      if (![...(opt.sizeFree ?? []), ...follow].includes(fn)) continue;
+      const isRightY = rightY.includes(fn);
+      if (![...(opt.sizeFree ?? []), ...follow].includes(fn) && !isRightY) continue;
       const es = blk.indexOf('<Elements>'); if (es < 0) continue;
       const sb = stepBlocks(t, blk.slice(es, blk.indexOf('</Elements>'))); if (!sb.geometries.length) continue;
       const planes = new Set(sb.geometries.map((g) => planeNameOf(t, g)));
-      const mv = (p: string): [number, number] => (p === 'Back' ? [0, ddy] : p === 'Right' ? [ddx, 0] : [0, 0]);
-      for (const p of planes) if ((p === 'Back' || p === 'Right') && planes.size > 1) throw new Error(`${m[1]}: mixed planes with ${p}`);
+      for (const p of planes) if ((p === 'Back' || p === 'Right' || p === 'Left') && planes.size > 1) throw new Error(`${m[1]}: mixed planes with ${p}`);
+      if (fn === 'Magnet' && !isRightY && [...planes][0] !== 'Left') throw new Error(`${m[1]} [Magnet] on ${[...planes][0]}: only proven size-free on the Left plane`);
+      if (isRightY) {
+        if ([...planes][0] !== 'Right') throw new Error(`${m[1]}: --right-y-follow on plane ${[...planes][0]}`);
+        if (!near(ddx, 0)) throw new Error(`${m[1]}: --right-y-follow with a dx1 change not handled`);
+        if (near(ddy, 0)) continue;
+        for (const g of sb.geometries) { const at = t.indexOf(g); edits.push([at, at + g.length, translateGeometry(g, ddy, 0)]); }
+        for (const op of sb.operations) { const at = t.indexOf(op); edits.push([at, at + op.length, translateOperation(op, 0, ddy, 0)]); }
+        log.push(`${m[1]} [${fn}] on Right: geometry moved ${ddy} in plane x, toolpaths ${ddy} in world Y (stays MagIn in from the dy1 edge)`);
+        continue;
+      }
+      const mv = (p: string): [number, number] => (p === 'Back' || p === 'Left' ? [0, ddy] : p === 'Right' ? [ddx, 0] : [0, 0]);
       const [wx, wy] = mv([...planes][0]); if (near(wx, 0) && near(wy, 0)) continue;
       for (const op of sb.operations) { const at = t.indexOf(op); edits.push([at, at + op.length, translateOperation(op, wx, wy, 0)]); }
       log.push(`${m[1]} [${fn}] on ${[...planes][0]}: toolpaths moved ${wx} / ${wy} with the plane`);
@@ -149,7 +168,7 @@ if (process.argv[1]?.endsWith('resize.ts')) {
   const flags = kv.filter((s) => s.startsWith('--')); const kvs = kv.filter((s) => !s.startsWith('--'));
   const list = (f: string) => flags.find((x) => x.startsWith(f + '='))?.slice(f.length + 1).split(',') ?? [];
   const { xml, log } = resize(orig, Object.fromEntries(kvs.map((s) => { const [k, v] = s.split('='); return [k, +v]; })),
-    { resize: flags.includes('--resize'), sizeFree: list('--size-free'), depthFollow: list('--depth-follow'), depthSteps: list('--depth-steps'), unproven: flags.includes('--unproven') });
+    { resize: flags.includes('--resize'), sizeFree: list('--size-free'), depthFollow: list('--depth-follow'), depthSteps: list('--depth-steps'), rightYFollow: list('--right-y-follow'), unproven: flags.includes('--unproven') });
   assertSafe(orig, xml);
   const V = variableValues(xml); const stale: string[] = [];
   for (const e of [...xml.matchAll(/<a:Expression>.*?<\/a:Expression>/gs)].map((m) => m[0])) {
